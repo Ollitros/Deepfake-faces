@@ -2,9 +2,84 @@ import os
 import cv2 as cv
 import numpy as np
 import matplotlib.pyplot as plt
-from tensorflow.keras.layers import Input, Conv2D, UpSampling2D, MaxPool2D, BatchNormalization
-from tensorflow.keras.models import Model
 from tensorflow.keras.callbacks import ModelCheckpoint
+from tensorflow.keras.models import Model
+from models import Autoencoder
+
+
+def test():
+    input_shape = (200, 200, 3)
+
+    ##################
+    # Load src model
+    src_model = Autoencoder(input_shape)
+    src_model.load_weights('data/models/model_src.h5')
+
+    # Test model
+    prediction = src_model.predict(X[0:10])
+
+    for i in range(5):
+        plt.subplot(231), plt.imshow(prediction[i], 'gray')
+        plt.subplot(232), plt.imshow(X[i], 'gray')
+        plt.show()
+
+    ##################
+    # Load dst model
+    dst_model = Autoencoder(input_shape)
+    dst_model.load_weights('data/models/model_dst.h5')
+
+    # Test model
+    prediction = dst_model.predict(Y[0:10])
+
+    for i in range(5):
+        plt.subplot(231), plt.imshow(prediction[i], 'gray')
+        plt.subplot(232), plt.imshow(Y[i], 'gray')
+        plt.show()
+
+
+def train():
+    input_shape = (200, 200, 3)
+
+    ##################
+    # Create src model
+    src_model = Autoencoder(input_shape)
+
+    # checkpoint
+    filepath = "data/models/src/src-{epoch:02d}-{val_loss:.2f}.h5"
+    checkpoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=True, mode='auto')
+    print(src_model.summary())
+
+    src_model.fit(X, X, epochs=200, batch_size=25, validation_data=(X, X), callbacks=[checkpoint])
+    src_model.save('data/models/model_src.h5')
+
+    # Test model
+    prediction = src_model.predict(X[0:10])
+
+    for i in range(3):
+        plt.subplot(231), plt.imshow(prediction[i], 'gray')
+        plt.subplot(232), plt.imshow(X[i], 'gray')
+        plt.show()
+
+    ##################
+    # Create dst model
+    dst_model = Autoencoder(input_shape)
+
+    # checkpoint
+    filepath = "data/models/dst/dst-{epoch:02d}-{val_loss:.2f}.h5"
+    checkpoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=True, mode='auto')
+    print(dst_model.summary())
+
+    dst_model.fit(Y, Y, epochs=200, batch_size=25, validation_data=(Y, Y), callbacks=[checkpoint])
+    dst_model.save('data/models/model_dst.h5')
+
+    # Test model
+    prediction = dst_model.predict(Y[0:10])
+
+    for i in range(3):
+        plt.subplot(231), plt.imshow(prediction[i], 'gray')
+        plt.subplot(232), plt.imshow(Y[i], 'gray')
+        plt.show()
+
 
 # Count images from src folder
 _, _, src_files = next(os.walk("data/src_faces"))
@@ -44,44 +119,5 @@ Y = Y.astype('float32')
 X /= 255
 Y /= 255
 
-# Create model
-input_shape = (200, 200, 3)
-
-inputs = Input(shape=input_shape)
-x = Conv2D(64, (3, 3), activation='relu', padding='same')(inputs)
-x = MaxPool2D(pool_size=(2, 2))(x)
-x = Conv2D(128, (3, 3), activation='relu', padding='same')(x)
-x = MaxPool2D(pool_size=(2, 2))(x)
-x = Conv2D(256, (3, 3), activation='relu', padding='same')(x)
-x = MaxPool2D(pool_size=(2, 2))(x)
-x = Conv2D(512, (3, 3), activation='relu', padding='same')(x)
-
-x = Conv2D(256, (3, 3), activation='relu', padding='same')(x)
-x = UpSampling2D((2, 2))(x)
-x = Conv2D(128, (3, 3), activation='relu', padding='same')(x)
-x = UpSampling2D((2, 2))(x)
-x = Conv2D(64, (3, 3), activation='relu', padding='same')(x)
-x = UpSampling2D((2, 2))(x)
-outputs = Conv2D(3, (3, 3), activation='sigmoid', padding='same')(x)
-
-model = Model(inputs=inputs, outputs=outputs)
-
-# checkpoint
-filepath = "data/models/weights-improvement-{epoch:02d}-{val_loss:.2f}.h5"
-checkpoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=True, mode='auto')
-
-model.compile(loss='mean_squared_error', optimizer='adam')
-print(model.summary())
-model.fit(X, Y, epochs=500, batch_size=25, validation_data=(X, Y), callbacks=[checkpoint])
-model.save('data/models/model_dual_face.h5')
-
-# Test model
-prediction = model.predict(X[0:10])
-prediction_2 = model.predict(Y[0:10])
-
-for i in range(5):
-    plt.subplot(231), plt.imshow(prediction[i], 'gray')
-    plt.subplot(232), plt.imshow(X[i], 'gray')
-    plt.subplot(233), plt.imshow(Y[i], 'gray')
-    plt.subplot(234), plt.imshow(prediction_2[i], 'gray')
-    plt.show()
+# train()
+test()
