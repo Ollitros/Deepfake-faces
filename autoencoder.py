@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tensorflow.keras.callbacks import ModelCheckpoint
 from tensorflow.keras.models import Model
-from models import Autoencoder
+from models import Autoencoder, MergedAutoencoder
 
 
 def test():
@@ -36,20 +36,24 @@ def test():
         plt.subplot(232), plt.imshow(Y[i], 'gray')
         plt.show()
 
+    # model = FakeAutoencoder(src_model, dst_model)
 
-def train():
+
+def train(epochs, batch_size):
+
     input_shape = (200, 200, 3)
+    src_model, dst_model = Autoencoder(input_shape)
 
-    ##################
+    # #################
     # Create src model
-    src_model = Autoencoder(input_shape)
+    # #################
 
     # checkpoint
     filepath = "data/models/src/src-{epoch:02d}-{val_loss:.2f}.h5"
     checkpoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=True, mode='auto')
     print(src_model.summary())
 
-    src_model.fit(X, X, epochs=200, batch_size=25, validation_data=(X, X), callbacks=[checkpoint])
+    src_model.fit(X, X, epochs=epochs, batch_size=batch_size, validation_data=(X, X), callbacks=[checkpoint])
     src_model.save('data/models/model_src.h5')
 
     # Test model
@@ -60,16 +64,16 @@ def train():
         plt.subplot(232), plt.imshow(X[i], 'gray')
         plt.show()
 
-    ##################
+    # #################
     # Create dst model
-    dst_model = Autoencoder(input_shape)
+    # #################
 
     # checkpoint
     filepath = "data/models/dst/dst-{epoch:02d}-{val_loss:.2f}.h5"
     checkpoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=True, mode='auto')
     print(dst_model.summary())
 
-    dst_model.fit(Y, Y, epochs=200, batch_size=25, validation_data=(Y, Y), callbacks=[checkpoint])
+    dst_model.fit(Y, Y, epochs=epochs, batch_size=batch_size, validation_data=(Y, Y), callbacks=[checkpoint])
     dst_model.save('data/models/model_dst.h5')
 
     # Test model
@@ -78,6 +82,17 @@ def train():
     for i in range(3):
         plt.subplot(231), plt.imshow(prediction[i], 'gray')
         plt.subplot(232), plt.imshow(Y[i], 'gray')
+        plt.show()
+
+    # #################
+    # Create merged model
+    # #################
+    merged_model = MergedAutoencoder(X[0:3], src_model, dst_model)
+
+    for i in range(3):
+        plt.subplot(231), plt.imshow(prediction[i], 'gray')
+        plt.subplot(232), plt.imshow(X[i], 'gray')
+        plt.subplot(233), plt.imshow(Y[i], 'gray')
         plt.show()
 
 
@@ -119,5 +134,8 @@ Y = Y.astype('float32')
 X /= 255
 Y /= 255
 
-# train()
-test()
+epochs = 50
+bacth_size = 25
+
+train(epochs, bacth_size)
+# test()
