@@ -3,27 +3,15 @@ import cv2 as cv
 import numpy as np
 import matplotlib.pyplot as plt
 from tensorflow.keras.callbacks import ModelCheckpoint
-from tensorflow.keras.models import Model
+from tensorflow.keras.models import Model, load_model
 from tensorflow.keras.layers import Input
 from models import Autoencoders
 
 
 def test():
 
-    # Create autoencoder with two branches
-    input_shape = (200, 200, 3)
-    encoder, src_decoder, dst_decoder = Autoencoders(input_shape)
+    combined = load_model('data/models/combined_model.h5')
 
-    # Combining two separate models into one. Required creating Input layer
-    encoder_input = Input(shape=(200, 200, 3))
-    encode = encoder(encoder_input)
-
-    src_decode = src_decoder(encode)
-    dst_decode = dst_decoder(encode)
-
-    combined = Model(inputs=encoder_input, outputs=[src_decode, dst_decode])
-    combined.compile(loss='mean_squared_error', optimizer='adam')
-    combined.load_weights('data/models/combined_model.h5')
     print(combined.summary())
 
     # Test model
@@ -46,10 +34,9 @@ def test():
         plt.show()
 
 
-def train(epochs, batch_size):
+def train(epochs, batch_size, input_shape):
 
     # Return encoder and two decoders
-    input_shape = (200, 200, 3)
     encoder, src_decoder, dst_decoder = Autoencoders(input_shape)
 
     # Create checkpoint
@@ -57,7 +44,7 @@ def train(epochs, batch_size):
     checkpoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=True, mode='auto')
 
     # Combining two separate models into one. Required creating Input layer
-    encoder_input = Input(shape=(200, 200, 3))
+    encoder_input = Input(shape=input_shape)
     encode = encoder(encoder_input)
 
     src_decode = src_decoder(encode)
@@ -77,12 +64,12 @@ def train(epochs, batch_size):
         src_decoder.trainable = True
         dst_decoder.trainable = False
         combined.compile(loss='mean_squared_error', optimizer='adam')
-        combined.fit(x=X, y=[X, Y], epochs=2, batch_size=batch_size, callbacks=[checkpoint], validation_data=(X, [X, Y]))
+        combined.fit(x=X, y=[X, Y], epochs=3, batch_size=batch_size, callbacks=[checkpoint], validation_data=(X, [X, Y]))
 
         src_decoder.trainable = False
         dst_decoder.trainable = True
         combined.compile(loss='mean_squared_error', optimizer='adam')
-        combined.fit(x=Y, y=[X, Y], epochs=2, batch_size=batch_size, callbacks=[checkpoint], validation_data=(Y, [X, Y]))
+        combined.fit(x=Y, y=[X, Y], epochs=3, batch_size=batch_size, callbacks=[checkpoint], validation_data=(Y, [X, Y]))
 
     combined.save('data/models/combined_model.h5')
 
@@ -136,7 +123,8 @@ X /= 255
 Y /= 255
 
 epochs = 10
-bacth_size = 25
+bacth_size = 10
+input_shape = (200, 200, 3)
 
-# train(epochs, bacth_size)
+train(epochs, bacth_size, input_shape)
 test()

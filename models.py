@@ -1,4 +1,4 @@
-from tensorflow.keras.layers import Input, Conv2D, UpSampling2D, MaxPool2D, BatchNormalization
+from tensorflow.keras.layers import Input, Conv2D, UpSampling2D, MaxPool2D, BatchNormalization, LeakyReLU
 from tensorflow.keras.models import Model
 from keras import backend as K
 
@@ -10,24 +10,24 @@ def Autoencoders(input_shape):
     # #######################
 
     encoder_inputs = Input(shape=input_shape)
-    x = Conv2D(64, (3, 3), activation='relu', padding='same')(encoder_inputs)
+    x = Conv2D(128, (5, 5), padding='same', activation='relu')(encoder_inputs)
     x = MaxPool2D(pool_size=(2, 2))(x)
-    x = Conv2D(128, (3, 3), activation='relu', padding='same')(x)
+    x = Conv2D(256, (4, 4), padding='same', activation='relu')(x)
     x = MaxPool2D(pool_size=(2, 2))(x)
-    x = Conv2D(256, (3, 3), activation='relu', padding='same')(x)
+    x = Conv2D(512, (3, 3), padding='same', activation='relu')(x)
     x = MaxPool2D(pool_size=(2, 2))(x)
-    encoder_output = Conv2D(512, (3, 3), activation='relu', padding='same')(x)
+    encoder_output = Conv2D(512, (3, 3), padding='same', activation='relu')(x)
 
     # #######################
     # ## Make src_decoder
     # #######################
 
     src_inputs = Input(shape=(25, 25, 512))
-    src_decoder_input = Conv2D(256, (3, 3), activation='relu', padding='same')(src_inputs)
+    src_decoder_input = Conv2D(512, (3, 3), padding='same', activation='relu')(src_inputs)
     x = UpSampling2D((2, 2))(src_decoder_input)
-    x = Conv2D(128, (3, 3), activation='relu', padding='same')(x)
+    x = Conv2D(256, (3, 3), padding='same', activation='relu')(x)
     x = UpSampling2D((2, 2))(x)
-    x = Conv2D(64, (3, 3), activation='relu', padding='same')(x)
+    x = Conv2D(128, (3, 3), padding='same', activation='relu')(x)
     x = UpSampling2D((2, 2))(x)
     src_decoder_output = Conv2D(3, (3, 3), activation='sigmoid', padding='same')(x)
 
@@ -36,11 +36,11 @@ def Autoencoders(input_shape):
     # #######################
 
     dst_inputs = Input(shape=(25, 25, 512))
-    dst_decoder_input = Conv2D(256, (3, 3), activation='relu', padding='same')(dst_inputs)
+    dst_decoder_input = Conv2D(512, (3, 3), padding='same', activation='relu')(dst_inputs)
     x = UpSampling2D((2, 2))(dst_decoder_input)
-    x = Conv2D(128, (3, 3), activation='relu', padding='same')(x)
+    x = Conv2D(256, (3, 3), padding='same', activation='relu')(x)
     x = UpSampling2D((2, 2))(x)
-    x = Conv2D(64, (3, 3), activation='relu', padding='same')(x)
+    x = Conv2D(128, (3, 3), padding='same', activation='relu')(x)
     x = UpSampling2D((2, 2))(x)
     dst_decoder_output = Conv2D(3, (3, 3), activation='sigmoid', padding='same')(x)
 
