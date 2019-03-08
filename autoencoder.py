@@ -4,96 +4,97 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tensorflow.keras.callbacks import ModelCheckpoint
 from tensorflow.keras.models import Model
-from models import Autoencoder, MergedAutoencoder
+from tensorflow.keras.layers import Input
+from models import Autoencoders
 
 
 def test():
+
+    # Create autoencoder with two branches
     input_shape = (200, 200, 3)
+    encoder, src_decoder, dst_decoder = Autoencoders(input_shape)
 
-    ##################
-    # Load src model
-    src_model = Autoencoder(input_shape)
-    src_model.load_weights('data/models/model_src.h5')
+    # Combining two separate models into one. Required creating Input layer
+    encoder_input = Input(shape=(200, 200, 3))
+    encode = encoder(encoder_input)
 
-    # Test model
-    prediction = src_model.predict(X[0:10])
+    src_decode = src_decoder(encode)
+    dst_decode = dst_decoder(encode)
 
-    for i in range(5):
-        plt.subplot(231), plt.imshow(prediction[i], 'gray')
-        plt.subplot(232), plt.imshow(X[i], 'gray')
-        plt.show()
-
-    ##################
-    # Load dst model
-    dst_model = Autoencoder(input_shape)
-    dst_model.load_weights('data/models/model_dst.h5')
+    combined = Model(inputs=encoder_input, outputs=[src_decode, dst_decode])
+    combined.compile(loss='mean_squared_error', optimizer='adam')
+    combined.load_weights('data/models/combined_model.h5')
+    print(combined.summary())
 
     # Test model
-    prediction = dst_model.predict(Y[0:10])
-
-    for i in range(5):
-        plt.subplot(231), plt.imshow(prediction[i], 'gray')
+    # Generate Y from X
+    prediction = combined.predict(X[0:10])
+    for i in range(3):
+        plt.subplot(231), plt.imshow(X[i], 'gray')
         plt.subplot(232), plt.imshow(Y[i], 'gray')
+        plt.subplot(233), plt.imshow(prediction[0][i], 'gray')
+        plt.subplot(234), plt.imshow(prediction[1][i], 'gray')
         plt.show()
 
-    # model = FakeAutoencoder(src_model, dst_model)
+    # Generate X from Y
+    prediction = combined.predict(Y[0:10])
+    for i in range(3):
+        plt.subplot(231), plt.imshow(X[i], 'gray')
+        plt.subplot(232), plt.imshow(Y[i], 'gray')
+        plt.subplot(233), plt.imshow(prediction[0][i], 'gray')
+        plt.subplot(234), plt.imshow(prediction[1][i], 'gray')
+        plt.show()
 
 
 def train(epochs, batch_size):
 
+    # Return encoder and two decoders
     input_shape = (200, 200, 3)
-    src_model, dst_model = Autoencoder(input_shape)
+    encoder, src_decoder, dst_decoder = Autoencoders(input_shape)
 
-    # #################
-    # Create src model
-    # #################
-
-    # checkpoint
-    filepath = "data/models/src/src-{epoch:02d}-{val_loss:.2f}.h5"
+    # Create checkpoint
+    filepath = "data/models/checkpoints/combined-{epoch:02d}-{val_loss:.2f}.h5"
     checkpoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=True, mode='auto')
-    print(src_model.summary())
 
-    src_model.fit(X, X, epochs=epochs, batch_size=batch_size, validation_data=(X, X), callbacks=[checkpoint])
-    src_model.save('data/models/model_src.h5')
+    # Combining two separate models into one. Required creating Input layer
+    encoder_input = Input(shape=(200, 200, 3))
+    encode = encoder(encoder_input)
+
+    src_decode = src_decoder(encode)
+    dst_decode = dst_decoder(encode)
+
+    combined = Model(inputs=encoder_input, outputs=[src_decode, dst_decode])
+    combined.compile(loss='mean_squared_error', optimizer='adam')
+    print(combined.summary())
+
+    for i in range(epochs):
+        print("######################################################\n"
+              "######################################################\n"
+              "GLOBAL EPOCH --------------------------------------- {i}".format(i=i),
+              "\n######################################################\n"
+              "######################################################\n")
+
+        src_decoder.trainable = True
+        dst_decoder.trainable = False
+        combined.compile(loss='mean_squared_error', optimizer='adam')
+        combined.fit(x=X, y=[X, Y], epochs=2, batch_size=batch_size, callbacks=[checkpoint], validation_data=(X, [X, Y]))
+
+        src_decoder.trainable = False
+        dst_decoder.trainable = True
+        combined.compile(loss='mean_squared_error', optimizer='adam')
+        combined.fit(x=Y, y=[X, Y], epochs=2, batch_size=batch_size, callbacks=[checkpoint], validation_data=(Y, [X, Y]))
+
+    combined.save('data/models/combined_model.h5')
 
     # Test model
-    prediction = src_model.predict(X[0:10])
+    prediction = combined.predict(X[0:10])
 
-    for i in range(3):
-        plt.subplot(231), plt.imshow(prediction[i], 'gray')
-        plt.subplot(232), plt.imshow(X[i], 'gray')
-        plt.show()
-
-    # #################
-    # Create dst model
-    # #################
-
-    # checkpoint
-    filepath = "data/models/dst/dst-{epoch:02d}-{val_loss:.2f}.h5"
-    checkpoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=True, mode='auto')
-    print(dst_model.summary())
-
-    dst_model.fit(Y, Y, epochs=epochs, batch_size=batch_size, validation_data=(Y, Y), callbacks=[checkpoint])
-    dst_model.save('data/models/model_dst.h5')
-
-    # Test model
-    prediction = dst_model.predict(Y[0:10])
-
-    for i in range(3):
-        plt.subplot(231), plt.imshow(prediction[i], 'gray')
-        plt.subplot(232), plt.imshow(Y[i], 'gray')
-        plt.show()
-
-    # #################
-    # Create merged model
-    # #################
-    merged_model = MergedAutoencoder(X[0:3], src_model, dst_model)
-
-    for i in range(3):
-        plt.subplot(231), plt.imshow(prediction[i], 'gray')
-        plt.subplot(232), plt.imshow(X[i], 'gray')
-        plt.subplot(233), plt.imshow(Y[i], 'gray')
-        plt.show()
+    for i in range(1):
+       plt.subplot(231), plt.imshow(X[i], 'gray')
+       plt.subplot(232), plt.imshow(Y[i], 'gray')
+       plt.subplot(233), plt.imshow(prediction[0][i], 'gray')
+       plt.subplot(234), plt.imshow(prediction[1][i], 'gray')
+       plt.show()
 
 
 # Count images from src folder
@@ -134,8 +135,8 @@ Y = Y.astype('float32')
 X /= 255
 Y /= 255
 
-epochs = 50
+epochs = 10
 bacth_size = 25
 
-train(epochs, bacth_size)
-# test()
+# train(epochs, bacth_size)
+test()
