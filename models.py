@@ -1,6 +1,6 @@
-from tensorflow.keras.layers import Input, Conv2D, UpSampling2D, MaxPool2D, BatchNormalization, LeakyReLU
-from tensorflow.keras.models import Model
-from keras import backend as K
+from keras.layers import Input, Conv2D, UpSampling2D, MaxPool2D, BatchNormalization, LeakyReLU
+from keras.models import Model
+from keras.layers import Conv2DTranspose
 
 
 def Autoencoders(input_shape):
@@ -10,9 +10,9 @@ def Autoencoders(input_shape):
     # #######################
 
     encoder_inputs = Input(shape=input_shape)
-    x = Conv2D(128, (5, 5), padding='same', activation='relu')(encoder_inputs)
+    x = Conv2D(128, (3, 3), padding='same', activation='relu')(encoder_inputs)
     x = MaxPool2D(pool_size=(2, 2))(x)
-    x = Conv2D(256, (4, 4), padding='same', activation='relu')(x)
+    x = Conv2D(256, (3, 3), padding='same', activation='relu')(x)
     x = MaxPool2D(pool_size=(2, 2))(x)
     x = Conv2D(512, (3, 3), padding='same', activation='relu')(x)
     x = MaxPool2D(pool_size=(2, 2))(x)
@@ -52,7 +52,7 @@ def Autoencoders(input_shape):
 
     dst_decoder = Model(inputs=dst_inputs, outputs=dst_decoder_output)
     dst_decoder.compile(loss='mean_squared_error', optimizer='adam')
-
+    print(encoder.summary())
     return encoder, src_decoder, dst_decoder
 
 
