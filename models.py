@@ -1,4 +1,4 @@
-from keras.layers import Input, Conv2D, UpSampling2D, MaxPool2D, BatchNormalization, LeakyReLU
+from keras.layers import Input, Conv2D, UpSampling2D, MaxPool2D, BatchNormalization, LeakyReLU, Dropout
 from keras.models import Model
 from keras.layers import Conv2DTranspose
 
@@ -10,11 +10,14 @@ def Autoencoders(input_shape):
     # #######################
 
     encoder_inputs = Input(shape=input_shape)
-    x = Conv2D(128, (3, 3), padding='same', activation='relu')(encoder_inputs)
+    x = Conv2D(64, (3, 3), padding='same', activation='relu')(encoder_inputs)
+    x = Dropout(0.1)(x)
+    x = MaxPool2D(pool_size=(2, 2))(x)
+    x = Conv2D(128, (3, 3), padding='same', activation='relu')(x)
+    x = Dropout(0.1)(x)
     x = MaxPool2D(pool_size=(2, 2))(x)
     x = Conv2D(256, (3, 3), padding='same', activation='relu')(x)
-    x = MaxPool2D(pool_size=(2, 2))(x)
-    x = Conv2D(512, (3, 3), padding='same', activation='relu')(x)
+    x = Dropout(0.1)(x)
     x = MaxPool2D(pool_size=(2, 2))(x)
     encoder_output = Conv2D(512, (3, 3), padding='same', activation='relu')(x)
 
@@ -24,10 +27,13 @@ def Autoencoders(input_shape):
 
     src_inputs = Input(shape=(25, 25, 512))
     src_decoder_input = Conv2D(512, (3, 3), padding='same', activation='relu')(src_inputs)
+    src_decoder_input = Dropout(0.1)(src_decoder_input)
     x = UpSampling2D((2, 2))(src_decoder_input)
     x = Conv2D(256, (3, 3), padding='same', activation='relu')(x)
+    x = Dropout(0.1)(x)
     x = UpSampling2D((2, 2))(x)
     x = Conv2D(128, (3, 3), padding='same', activation='relu')(x)
+    x = Dropout(0.1)(x)
     x = UpSampling2D((2, 2))(x)
     src_decoder_output = Conv2D(3, (3, 3), activation='sigmoid', padding='same')(x)
 
@@ -37,10 +43,13 @@ def Autoencoders(input_shape):
 
     dst_inputs = Input(shape=(25, 25, 512))
     dst_decoder_input = Conv2D(512, (3, 3), padding='same', activation='relu')(dst_inputs)
+    dst_decoder_input = Dropout(0.1)(dst_decoder_input)
     x = UpSampling2D((2, 2))(dst_decoder_input)
     x = Conv2D(256, (3, 3), padding='same', activation='relu')(x)
+    x = Dropout(0.1)(x)
     x = UpSampling2D((2, 2))(x)
     x = Conv2D(128, (3, 3), padding='same', activation='relu')(x)
+    x = Dropout(0.1)(x)
     x = UpSampling2D((2, 2))(x)
     dst_decoder_output = Conv2D(3, (3, 3), activation='sigmoid', padding='same')(x)
 

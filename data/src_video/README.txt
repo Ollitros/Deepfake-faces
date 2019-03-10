@@ -1,1 +1,0 @@
-Folder for video from which faces must be extracted.

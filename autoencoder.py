@@ -16,7 +16,7 @@ def test(X, Y):
 
     # Test model
     # Generate Y from X
-    prediction = combined.predict(X)
+    prediction = combined.predict(X[0:10])
     for i in range(1):
         plt.subplot(231), plt.imshow(X[i], 'gray')
         plt.subplot(232), plt.imshow(Y[i], 'gray')
@@ -25,7 +25,7 @@ def test(X, Y):
         plt.show()
 
     # # Generate X from Y
-    # prediction = combined.predict(Y)
+    # prediction = combined.predict(Y[0:10])
     # for i in range(1):
     #     plt.subplot(231), plt.imshow(X[i], 'gray')
     #     plt.subplot(232), plt.imshow(Y[i], 'gray')
@@ -53,7 +53,7 @@ def train(X, Y, epochs, batch_size, input_shape):
     combined = Model(inputs=encoder_input, outputs=[src_decode, dst_decode])
     combined.compile(loss='mean_squared_error', optimizer='adam')
     print(combined.summary())
-    # combined.load_weights('data/models/combined_model.h5')
+    combined.load_weights('data/models/combined_model.h5')
 
     for i in range(epochs):
         print("######################################################\n"
@@ -65,17 +65,20 @@ def train(X, Y, epochs, batch_size, input_shape):
         src_decoder.trainable = True
         dst_decoder.trainable = False
         combined.compile(loss='mean_squared_error', optimizer='adam')
-        combined.fit(x=X, y=[X, Y], epochs=1, batch_size=batch_size, callbacks=[checkpoint], validation_data=(X, [X, Y]))
+        combined.fit(x=X, y=[X, Y], epochs=3, batch_size=batch_size, callbacks=[checkpoint], validation_data=(X, [X, Y]))
 
         src_decoder.trainable = False
         dst_decoder.trainable = True
         combined.compile(loss='mean_squared_error', optimizer='adam')
-        combined.fit(x=Y, y=[X, Y], epochs=2, batch_size=batch_size, callbacks=[checkpoint], validation_data=(Y, [X, Y]))
+        combined.fit(x=Y, y=[X, Y], epochs=3, batch_size=batch_size, callbacks=[checkpoint], validation_data=(Y, [X, Y]))
+
+        prediction = combined.predict(X[0:5])
+        cv.imwrite('data/temp/image{epoch}.jpg'.format(epoch=i+0), prediction[1][0]*255)
 
     combined.save('data/models/combined_model.h5')
 
     # Test model
-    prediction = combined.predict(X)
+    prediction = combined.predict(X[0:10])
 
     for i in range(1):
        plt.subplot(231), plt.imshow(X[i], 'gray')
@@ -91,15 +94,17 @@ def main():
     train_from_picture = True
     picture_examples = 100
 
-    epochs = 5
-    bacth_size = 5
+    epochs = 10
+    bacth_size = 10
     input_shape = (200, 200, 3)
 
     X = []
     Y = []
     if train_from_picture:
-        x = cv.imread('data/src/src_picture_face/src_face.jpg')
-        y = cv.imread('data/dst/dst_picture_face/dst_face.jpg')
+        # x = cv.imread('data/src/src_picture_face/src_face.jpg')
+        # y = cv.imread('data/dst/dst_picture_face/dst_face.jpg')
+        x = cv.imread('data/src/src_picture/src.jpg')
+        y = cv.imread('data/dst/dst_picture/dst.jpg')
         x = cv.resize(x, (200, 200))
         y = cv.resize(y, (200, 200))
         for i in range(picture_examples):
