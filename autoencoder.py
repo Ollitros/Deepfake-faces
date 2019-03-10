@@ -8,7 +8,7 @@ from keras.layers import Input
 from models import Autoencoders
 
 
-def test():
+def test(X, Y):
 
     combined = load_model('data/models/combined_model.h5')
 
@@ -34,7 +34,7 @@ def test():
     #     plt.show()
 
 
-def train(epochs, batch_size, input_shape):
+def train(X, Y, epochs, batch_size, input_shape):
 
     # Return encoder and two decoders
     encoder, src_decoder, dst_decoder = Autoencoders(input_shape)
@@ -85,64 +85,66 @@ def train(epochs, batch_size, input_shape):
        plt.show()
 
 
-# # Count images from src folder
-# _, _, src_files = next(os.walk("data/src_faces"))
-# src_file_count = len(src_files)
+def main():
+    # Parameters
+    train_from_video = False
+    train_from_picture = True
+    picture_examples = 100
 
-# # Count images from dst folder
-# _, _, dst_files = next(os.walk("data/dst_faces"))
-# dst_file_count = len(dst_files)
+    epochs = 5
+    bacth_size = 5
+    input_shape = (200, 200, 3)
 
-# file_count = None
-# if dst_file_count > src_file_count:
-#     file_count = src_file_count
-# elif dst_file_count < src_file_count:
-#     file_count = dst_file_count
-# else:
-#     file_count = src_file_count = dst_file_count
+    X = []
+    Y = []
+    if train_from_picture:
+        x = cv.imread('data/src/src_picture_face/src_face.jpg')
+        y = cv.imread('data/dst/dst_picture_face/dst_face.jpg')
+        x = cv.resize(x, (200, 200))
+        y = cv.resize(y, (200, 200))
+        for i in range(picture_examples):
+            X.append(x)
+            Y.append(y)
+        X = np.asarray(X)
+        Y = np.asarray(Y)
+
+    elif train_from_video:
+        # Count images from src folder
+        _, _, src_files = next(os.walk("data/src/src_video_faces"))
+        src_file_count = len(src_files)
+        # Count images from dst folder
+        _, _, dst_files = next(os.walk("data/dst/dst_video_faces"))
+        dst_file_count = len(dst_files)
+        file_count = None
+        if dst_file_count > src_file_count:
+            file_count = src_file_count
+        elif dst_file_count < src_file_count:
+            file_count = dst_file_count
+        else:
+            file_count = src_file_count = dst_file_count
+        # Creating train dataset
+        for i in range(file_count):
+            image = cv.imread('data/src/src_video_faces/{img}'.format(img=src_files[i]))
+            image = cv.resize(image, (200, 200))
+            X.append(image)
+        X = np.asarray(X)
+        for i in range(file_count):
+            image = cv.imread('data/dst/dst_video_faces/{img}'.format(img=dst_files[i]))
+            image = cv.resize(image, (200, 200))
+            Y.append(image)
+        Y = np.asarray(Y)
+
+    else:
+        print("It`s fiasko, bro.")
+
+    X = X.astype('float32')
+    Y = Y.astype('float32')
+    X /= 255
+    Y /= 255
+
+    train(X, Y, epochs, bacth_size, input_shape)
+    test(X, Y)
 
 
-# # Creating train dataset
-# X = []
-# for i in range(file_count):
-#     image = cv.imread('data/src_faces/{img}'.format(img=src_files[i]))
-#     image = cv.resize(image, (200, 200))
-#     X.append(image)
-# X = np.asarray(X)
-
-# Y = []
-# for i in range(file_count):
-#     image = cv.imread('data/dst_faces/{img}'.format(img=dst_files[i]))
-#     image = cv.resize(image, (200, 200))
-#     Y.append(image)
-# Y = np.asarray(Y)
-
-# # Normalize dataset before training
-# X = X.astype('float32')
-# Y = Y.astype('float32')
-# X /= 255
-# Y /= 255
-
-epochs = 10
-bacth_size = 5
-input_shape = (200, 200, 3)
-
-#############
-x = cv.imread('data/src_train.jpg')
-y = cv.imread('data/dst_train.jpg')
-X = []
-Y = []
-for i in range(100):
-    X.append(x)
-    Y.append(y)
-X = np.asarray(X)
-Y = np.asarray(Y)
-
-X = X.astype('float32')
-Y = Y.astype('float32')
-X /= 255
-Y /= 255
-##############
-
-train(epochs, bacth_size, input_shape)
-test()
+if __name__ == "__main__":
+    main()
