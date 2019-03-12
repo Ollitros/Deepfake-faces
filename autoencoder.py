@@ -16,7 +16,7 @@ def test(X, Y):
 
     # Test model
     # Generate Y from X
-    prediction = combined.predict(X[0:10])
+    prediction = combined.predict(X[0:2])
     for i in range(1):
         plt.subplot(231), plt.imshow(X[i], 'gray')
         plt.subplot(232), plt.imshow(Y[i], 'gray')
@@ -24,14 +24,14 @@ def test(X, Y):
         plt.subplot(234), plt.imshow(prediction[1][i], 'gray')
         plt.show()
 
-    # # Generate X from Y
-    # prediction = combined.predict(Y[0:10])
-    # for i in range(1):
-    #     plt.subplot(231), plt.imshow(X[i], 'gray')
-    #     plt.subplot(232), plt.imshow(Y[i], 'gray')
-    #     plt.subplot(233), plt.imshow(prediction[0][i], 'gray')
-    #     plt.subplot(234), plt.imshow(prediction[1][i], 'gray')
-    #     plt.show()
+    # Generate X from Y
+    prediction = combined.predict(Y[0:2])
+    for i in range(1):
+        plt.subplot(231), plt.imshow(X[i], 'gray')
+        plt.subplot(232), plt.imshow(Y[i], 'gray')
+        plt.subplot(233), plt.imshow(prediction[0][i], 'gray')
+        plt.subplot(234), plt.imshow(prediction[1][i], 'gray')
+        plt.show()
 
 
 def train(X, Y, epochs, batch_size, input_shape):
@@ -65,20 +65,20 @@ def train(X, Y, epochs, batch_size, input_shape):
         src_decoder.trainable = True
         dst_decoder.trainable = False
         combined.compile(loss='mean_squared_error', optimizer='adam')
-        combined.fit(x=X, y=[X, Y], epochs=3, batch_size=batch_size, callbacks=[checkpoint], validation_data=(X, [X, Y]))
+        combined.fit(x=X, y=[X, Y], epochs=1, batch_size=batch_size, callbacks=[checkpoint], validation_data=(X, [X, Y]))
 
         src_decoder.trainable = False
         dst_decoder.trainable = True
         combined.compile(loss='mean_squared_error', optimizer='adam')
-        combined.fit(x=Y, y=[X, Y], epochs=3, batch_size=batch_size, callbacks=[checkpoint], validation_data=(Y, [X, Y]))
+        combined.fit(x=Y, y=[X, Y], epochs=1, batch_size=batch_size, callbacks=[checkpoint], validation_data=(Y, [X, Y]))
 
-        prediction = combined.predict(X[0:5])
-        cv.imwrite('data/temp/image{epoch}.jpg'.format(epoch=i+0), prediction[1][0]*255)
+        prediction = combined.predict(X[0:2])
+        cv.imwrite('data/temp/image{epoch}.jpg'.format(epoch=i+85), prediction[1][0]*255)
 
     combined.save('data/models/combined_model.h5')
 
     # Test model
-    prediction = combined.predict(X[0:10])
+    prediction = combined.predict(X[0:2])
 
     for i in range(1):
        plt.subplot(231), plt.imshow(X[i], 'gray')
@@ -90,12 +90,12 @@ def train(X, Y, epochs, batch_size, input_shape):
 
 def main():
     # Parameters
-    train_from_video = False
-    train_from_picture = True
+    train_from_video = True
+    train_from_picture = False
     picture_examples = 100
 
-    epochs = 10
-    bacth_size = 10
+    epochs = 5
+    bacth_size = 2
     input_shape = (200, 200, 3)
 
     X = []
@@ -133,6 +133,7 @@ def main():
             image = cv.resize(image, (200, 200))
             X.append(image)
         X = np.asarray(X)
+
         for i in range(file_count):
             image = cv.imread('data/dst/dst_video_faces/{img}'.format(img=dst_files[i]))
             image = cv.resize(image, (200, 200))
