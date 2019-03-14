@@ -73,7 +73,7 @@ def train(X, Y, epochs, batch_size, input_shape):
         combined.fit(x=Y, y=[X, Y], epochs=1, batch_size=batch_size, callbacks=[checkpoint], validation_data=(Y, [X, Y]))
 
         prediction = combined.predict(X[0:2])
-        cv.imwrite('data/temp/image{epoch}.jpg'.format(epoch=i+85), prediction[1][0]*255)
+        cv.imwrite('data/temp/image{epoch}.jpg'.format(epoch=i+220), prediction[1][0]*255)
 
     combined.save('data/models/combined_model.h5')
 
