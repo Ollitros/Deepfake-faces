@@ -227,11 +227,12 @@ def video_extract(path_from, path_to, points_path):
         image = cv.resize(image, (200, 200))
 
         # Display the resulting frame
-        # gray = cv.cvtColor(frame, cv.COLOR_RGB2GRAY)
         face = extract(src=image, points_path=points_path, step=step)
 
         cv.imwrite(path_to.format(step=step), face)
         step = step + 1
+
+        print("TOTAL - ", file_count, "||| COMPUTED - ", i)
 
 
 def main(extract_from_video, extract_from_picture):
