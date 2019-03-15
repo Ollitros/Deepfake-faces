@@ -1,6 +1,7 @@
 import numpy as np
 import dlib
 import cv2 as cv
+import os
 from imutils import face_utils
 
 
@@ -51,6 +52,34 @@ def calculateDelaunayTriangles(rect, points):
 
     # Insert points into subdiv
     for p in points:
+        k = []
+        if p[0] >= 200:
+            k.append(200 - 1)
+            k.append(p[1])
+            k = tuple(k)
+            p = k
+
+        k = []
+        if p[1] >= 200:
+            k.append(p[0])
+            k.append(200 - 1)
+            k = tuple(k)
+            p = k
+
+        k = []
+        if p[0] < 0:
+            k.append(0)
+            k.append(p[1])
+            k = tuple(k)
+            p = k
+
+        k = []
+        if p[1] >= 200:
+            k.append(p[0])
+            k.append(0)
+            k = tuple(k)
+            p = k
+
         subdiv.insert(p)
 
     triangleList = subdiv.getTriangleList()
@@ -121,20 +150,9 @@ def warpTriangle(img1, img2, t1, t2):
     img2[r2[1]:r2[1] + r2[3], r2[0]:r2[0] + r2[2]] = img2[r2[1]:r2[1] + r2[3], r2[0]:r2[0] + r2[2]] + img2Rect
 
 
-def extract():
+def extract(src, points_path, step):
 
-    # Read images
-    filename_src = 'data/src.jpg'
-    filename_dst = 'data/dst.jpg'
-
-    # Read dst and src images
-    src = cv.imread(filename_src)
-    dst = cv.imread(filename_dst)
-
-    # Resize
-    src = cv.resize(src, (300, 300))
-    dst = cv.resize(dst, (300, 300))
-    img1Warped = np.copy(dst)
+    img1Warped = np.copy(src)
 
     # Set dlib parameters
     predictor_path = 'data/face_features/shape_predictor_68_face_landmarks.dat'
@@ -146,18 +164,11 @@ def extract():
     roi = rects[0]  # region of interest
     shape = predictor(src, roi)
     shape = face_utils.shape_to_np(shape)
-    np.savetxt('data/src.jpg.txt', shape, fmt="%s")
-
-    # detect face dst
-    rects = detector(dst, 1)
-    roi = rects[0]  # region of interest
-    shape = predictor(dst, roi)
-    shape = face_utils.shape_to_np(shape)
-    np.savetxt('data/dst.jpg.txt', shape, fmt="%s")
+    np.savetxt(points_path.format(step=step), shape, fmt="%s")
 
     # Read array of corresponding points
-    points1 = readPoints(filename_src + '.txt')
-    points2 = readPoints(filename_dst + '.txt')
+    points1 = readPoints(points_path.format(step=step))
+    points2 = readPoints(points_path.format(step=step))
 
     # Find convex hull
     hull1 = []
@@ -170,7 +181,7 @@ def extract():
         hull2.append(points2[int(hullIndex[i])])
 
     # Find delanauy traingulation for convex hull points
-    sizeImg2 = dst.shape
+    sizeImg2 = src.shape
     rect = (0, 0, sizeImg2[1], sizeImg2[0])
 
     dt = calculateDelaunayTriangles(rect, hull2)
@@ -195,49 +206,41 @@ def extract():
     for i in range(0, len(hull2)):
         hull8U.append((hull2[i][0], hull2[i][1]))
 
-    mask = np.zeros(dst.shape, dtype=dst.dtype)
-
+    mask = np.zeros(src.shape, dtype=src.dtype)
     cv.fillConvexPoly(mask, np.int32(hull8U), (255, 255, 255))
 
     # Clone seamlessly.
     mask_out = cv.subtract(mask, img1Warped)
     mask_out = cv.subtract(mask, mask_out)
 
-    return  mask_out
+    return mask_out
 
 
-def video_extract(path_from, path_to):
-    cap = cv.VideoCapture(path_from)
+def video_extract(path_from, path_to, points_path):
+
+    _, _, src_files = next(os.walk(path_from))
+    file_count = len(src_files)
 
     step = 0
-    while True:
-        # Capture frame-by-frame
-        ret, frame = cap.read()
-        # if frame is read correctly ret is True
-        if not ret:
-            print("Can't receive frame (stream end?). Exiting ...")
-            break
+    for i in range(file_count):
+        image = cv.imread((path_from + '{img}').format(img=src_files[i]))
+        image = cv.resize(image, (200, 200))
 
         # Display the resulting frame
         # gray = cv.cvtColor(frame, cv.COLOR_RGB2GRAY)
-        face = extract()
+        face = extract(src=image, points_path=points_path, step=step)
 
         cv.imwrite(path_to.format(step=step), face)
         step = step + 1
-
-        # cv.imshow('frame', frame)
-        if cv.waitKey(1) == ord('q'):
-            break
-
-    cap.release()
-    cv.destroyAllWindows()
 
 
 def main(extract_from_video, extract_from_picture):
 
     if extract_from_video:
-        video_extract(path_from='data/src/src_video/data_src.mp4', path_to='data/src/src_landmark/src_face{step}.jpg')
-        video_extract(path_from='data/dst/dst_video/data_dst.mp4', path_to='data/dst/dst_landmark/dst_face{step}.jpg')
+        video_extract(path_from='data/src/src_video_faces/', path_to='data/src/src_landmark/src_face{step}.jpg',
+                      points_path="data/src/src_landmark/src_face_points{step}.txt")
+        video_extract(path_from='data/dst/dst_video_faces/', path_to='data/dst/dst_landmark/dst_face{step}.jpg',
+                      points_path="data/dst/dst_landmark/dst_face_points{step}.txt")
 
     elif extract_from_picture:
         # picture_extract(path_from='data/src/src_picture/src.jpg', path_to='data/src/src_picture_face/src_face.jpg')
@@ -249,7 +252,7 @@ def main(extract_from_video, extract_from_picture):
 
 if __name__ == "__main__":
 
-    extract_from_video = False
-    extract_from_picture = True
+    extract_from_video = True
+    extract_from_picture = False
 
     main(extract_from_video, extract_from_picture)
