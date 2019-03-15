@@ -19,7 +19,6 @@ def video_extract(path_from, path_to, path_to_info, path_to_frame):
         gray = cv.cvtColor(frame, cv.COLOR_RGB2GRAY)
         faces = face_cascade.detectMultiScale(gray, 1.3, 5)
         for (x, y, w, h) in faces:
-            print(x, y, w, h)
 
             roi_color = frame[y:y + h, x:x + w]
             if roi_color is not None:

@@ -1,56 +1,63 @@
-from keras.layers import Input, Conv2D, UpSampling2D, MaxPool2D, BatchNormalization, LeakyReLU, Dropout
+from keras.layers import Input, Conv2D, UpSampling2D, MaxPool2D, BatchNormalization, LeakyReLU, Dropout, Activation
 from keras.models import Model
 
 
 def Autoencoders(input_shape):
+
+    def conv_block(inputs, filters, kernel_size, padding, activation):
+        x = Conv2D(filters, kernel_size, padding=padding)(inputs)
+        x = BatchNormalization()(x)
+        x = Activation(activation=activation)(x)
+
+        return x
 
     # #######################
     # ## Make encoder
     # #######################
 
     encoder_inputs = Input(shape=input_shape)
-    x = Conv2D(128, (3, 3), padding='same', activation='relu')(encoder_inputs)
+    x = conv_block(encoder_inputs, 128, (3, 3), padding='same', activation='relu')
     x = Dropout(0.25)(x)
     x = MaxPool2D(pool_size=(2, 2))(x)
-    x = Conv2D(256, (3, 3), padding='same', activation='relu')(x)
+    x = conv_block(x, 256, (3, 3), padding='same', activation='relu')
     x = Dropout(0.25)(x)
     x = MaxPool2D(pool_size=(2, 2))(x)
-    x = Conv2D(512, (3, 3), padding='same', activation='relu')(x)
+    x = conv_block(x, 512, (3, 3), padding='same', activation='relu')
     x = Dropout(0.25)(x)
     x = MaxPool2D(pool_size=(2, 2))(x)
-    encoder_output = Conv2D(1024, (3, 3), padding='same', activation='relu')(x)
+    encoder_output = conv_block(x, 1024, (3, 3), padding='same', activation='relu')
 
     # #######################
     # ## Make src_decoder
     # #######################
 
     src_inputs = Input(shape=(25, 25, 1024))
-    src_decoder_input = Conv2D(1024, (3, 3), padding='same', activation='relu')(src_inputs)
+    src_decoder_input = conv_block(src_inputs, 1024, (3, 3), padding='same', activation='relu')
     src_decoder_input = Dropout(0.25)(src_decoder_input)
     x = UpSampling2D((2, 2))(src_decoder_input)
-    x = Conv2D(512, (3, 3), padding='same', activation='relu')(x)
+    x = conv_block(x, 512, (3, 3), padding='same', activation='relu')
     x = Dropout(0.25)(x)
     x = UpSampling2D((2, 2))(x)
-    x = Conv2D(256, (3, 3), padding='same', activation='relu')(x)
+    x = conv_block(x, 256, (3, 3), padding='same', activation='relu')
     x = Dropout(0.25)(x)
     x = UpSampling2D((2, 2))(x)
-    src_decoder_output = Conv2D(3, (3, 3), activation='sigmoid', padding='same')(x)
+    src_decoder_output = conv_block(x, 3, (3, 3), activation='sigmoid', padding='same')
 
     # #######################
     # ## Make dst_decoder
     # #######################
 
     dst_inputs = Input(shape=(25, 25, 1024))
-    dst_decoder_input = Conv2D(1024, (3, 3), padding='same', activation='relu')(dst_inputs)
+    dst_decoder_input = conv_block(dst_inputs, 1024, (3, 3), padding='same', activation='relu')
     dst_decoder_input = Dropout(0.25)(dst_decoder_input)
     x = UpSampling2D((2, 2))(dst_decoder_input)
-    x = Conv2D(512, (3, 3), padding='same', activation='relu')(x)
+    x = conv_block(x, 512, (3, 3), padding='same', activation='relu')
     x = Dropout(0.25)(x)
     x = UpSampling2D((2, 2))(x)
-    x = Conv2D(256, (3, 3), padding='same', activation='relu')(x)
+    x = conv_block(x, 256, (3, 3), padding='same', activation='relu')
     x = Dropout(0.25)(x)
     x = UpSampling2D((2, 2))(x)
-    dst_decoder_output = Conv2D(3, (3, 3), activation='sigmoid', padding='same')(x)
+    dst_decoder_output = conv_block(x, 3, (3, 3), activation='sigmoid', padding='same')
 
     encoder = Model(inputs=encoder_inputs, outputs=encoder_output)
     encoder.compile(loss='mean_squared_error', optimizer='adam')

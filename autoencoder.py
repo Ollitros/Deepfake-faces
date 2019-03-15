@@ -53,7 +53,7 @@ def train(X, Y, epochs, batch_size, input_shape):
     combined = Model(inputs=encoder_input, outputs=[src_decode, dst_decode])
     combined.compile(loss='mean_squared_error', optimizer='adam')
     print(combined.summary())
-    combined.load_weights('data/models/combined_model.h5')
+    # combined.load_weights('data/models/combined_model.h5')
 
     for i in range(epochs):
         print("######################################################\n"
@@ -73,7 +73,7 @@ def train(X, Y, epochs, batch_size, input_shape):
         combined.fit(x=Y, y=[X, Y], epochs=1, batch_size=batch_size, callbacks=[checkpoint], validation_data=(Y, [X, Y]))
 
         prediction = combined.predict(X[0:2])
-        cv.imwrite('data/temp/image{epoch}.jpg'.format(epoch=i+220), prediction[1][0]*255)
+        cv.imwrite('data/temp/image{epoch}.jpg'.format(epoch=i+0), prediction[1][0]*255)
 
     combined.save('data/models/combined_model.h5')
 
@@ -115,10 +115,10 @@ def main():
 
     elif train_from_video:
         # Count images from src folder
-        _, _, src_files = next(os.walk("data/src/src_video_faces"))
+        _, _, src_files = next(os.walk("data/src/src_landmark/faces"))
         src_file_count = len(src_files)
         # Count images from dst folder
-        _, _, dst_files = next(os.walk("data/dst/dst_video_faces"))
+        _, _, dst_files = next(os.walk("data/dst/dst_landmark/faces"))
         dst_file_count = len(dst_files)
         file_count = None
         if dst_file_count > src_file_count:
@@ -129,14 +129,12 @@ def main():
             file_count = src_file_count = dst_file_count
         # Creating train dataset
         for i in range(file_count):
-            image = cv.imread('data/src/src_video_faces/{img}'.format(img=src_files[i]))
-            image = cv.resize(image, (200, 200))
+            image = cv.imread('data/src/src_landmark/faces/{img}'.format(img=src_files[i]))
             X.append(image)
         X = np.asarray(X)
 
         for i in range(file_count):
-            image = cv.imread('data/dst/dst_video_faces/{img}'.format(img=dst_files[i]))
-            image = cv.resize(image, (200, 200))
+            image = cv.imread('data/dst/dst_landmark/faces/{img}'.format(img=dst_files[i]))
             Y.append(image)
         Y = np.asarray(Y)
 

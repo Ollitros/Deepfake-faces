@@ -150,7 +150,7 @@ def warpTriangle(img1, img2, t1, t2):
     img2[r2[1]:r2[1] + r2[3], r2[0]:r2[0] + r2[2]] = img2[r2[1]:r2[1] + r2[3], r2[0]:r2[0] + r2[2]] + img2Rect
 
 
-def extract(src, points_path, step):
+def extract(src, points_path, step, prev_roi):
 
     img1Warped = np.copy(src)
 
@@ -161,7 +161,12 @@ def extract(src, points_path, step):
 
     # detect face src
     rects = detector(src, 1)
-    roi = rects[0]  # region of interest
+    roi = None
+    try:
+        roi = rects[0]  # region of interest
+    except IndexError:
+        roi = prev_roi
+
     shape = predictor(src, roi)
     shape = face_utils.shape_to_np(shape)
     np.savetxt(points_path.format(step=step), shape, fmt="%s")
@@ -213,24 +218,27 @@ def extract(src, points_path, step):
     mask_out = cv.subtract(mask, img1Warped)
     mask_out = cv.subtract(mask, mask_out)
 
-    return mask_out
+    return mask_out, roi
 
 
-def video_extract(path_from, path_to, points_path):
+def make_extraction(path_from, path_to, points_path, path_walk):
 
-    _, _, src_files = next(os.walk(path_from))
+    _, _, src_files = next(os.walk(path_walk))
     file_count = len(src_files)
-
-    step = 0
+    roi = None
     for i in range(file_count):
-        image = cv.imread((path_from + '{img}').format(img=src_files[i]))
+        index = src_files[i]
+        index = index.split('.')
+        index = index[0].split('face')
+        index = int(index[1])
+
+        image = cv.imread(path_from.format(img=index))
         image = cv.resize(image, (200, 200))
 
         # Display the resulting frame
-        face = extract(src=image, points_path=points_path, step=step)
+        face, roi = extract(src=image, points_path=points_path, step=index, prev_roi=roi)
 
-        cv.imwrite(path_to.format(step=step), face)
-        step = step + 1
+        cv.imwrite(path_to.format(step=index), face)
 
         print("TOTAL - ", file_count, "||| COMPUTED - ", i)
 
@@ -238,10 +246,10 @@ def video_extract(path_from, path_to, points_path):
 def main(extract_from_video, extract_from_picture):
 
     if extract_from_video:
-        video_extract(path_from='data/src/src_video_faces/', path_to='data/src/src_landmark/src_face{step}.jpg',
-                      points_path="data/src/src_landmark/src_face_points{step}.txt")
-        video_extract(path_from='data/dst/dst_video_faces/', path_to='data/dst/dst_landmark/dst_face{step}.jpg',
-                      points_path="data/dst/dst_landmark/dst_face_points{step}.txt")
+        make_extraction(path_from='data/src/src_video_faces/faces/face_images/src_face{img}.jpg', path_to='data/src/src_landmark/faces/src_face{step}.jpg',
+                        points_path="data/src/src_landmark/points/face_points{step}.txt", path_walk='data/src/src_video_faces/faces/face_images/')
+        make_extraction(path_from='data/dst/dst_video_faces/faces/face_images/dst_face{img}.jpg', path_to='data/dst/dst_landmark/faces/dst_face{step}.jpg',
+                        points_path="data/dst/dst_landmark/points/face_points{step}.txt", path_walk='data/dst/dst_video_faces/faces/face_images/')
 
     elif extract_from_picture:
         # picture_extract(path_from='data/src/src_picture/src.jpg', path_to='data/src/src_picture_face/src_face.jpg')
