@@ -84,7 +84,6 @@ def calculateDelaunayTriangles(rect, points):
 
     return delaunayTri
 
-
 # Warps and alpha blends triangular regions from img1 and img2 to img
 def warpTriangle(img1, img2, t1, t2):
     # Find bounding rectangle for each triangle
@@ -122,9 +121,9 @@ def warpTriangle(img1, img2, t1, t2):
     img2[r2[1]:r2[1] + r2[3], r2[0]:r2[0] + r2[2]] = img2[r2[1]:r2[1] + r2[3], r2[0]:r2[0] + r2[2]] + img2Rect
 
 
-def make_swap(src_face, mask_prediction):
+def make_swap(src, dst):
 
-    img1Warped = np.copy(src_face)
+    img1Warped = np.copy(dst)
 
     # Set dlib parameters
     predictor_path = 'data/face_features/shape_predictor_68_face_landmarks.dat'
@@ -132,22 +131,29 @@ def make_swap(src_face, mask_prediction):
     predictor = dlib.shape_predictor(predictor_path)
 
     # detect face src
-    rects = detector(src_face, 1)
-    roi = rects[0]  # region of interest
-    shape = predictor(src_face, roi)
+    rects = detector(src, 1)
+    try:
+        roi = rects[0]  # region of interest
+    except IndexError:
+        return 'fiasko'
+    shape = predictor(src, roi)
     shape = face_utils.shape_to_np(shape)
-    np.savetxt('data/src.jpg.txt', shape, fmt="%s")
+    np.savetxt('data/src.txt', shape, fmt="%s")
 
     # detect face dst
     rects = detector(dst, 1)
-    roi = rects[0]  # region of interest
+    try:
+        roi = rects[0]  # region of interest
+    except IndexError:
+        return 'fiasko'
+
     shape = predictor(dst, roi)
     shape = face_utils.shape_to_np(shape)
-    np.savetxt('data/dst.jpg.txt', shape, fmt="%s")
+    np.savetxt('data/dst.txt', shape, fmt="%s")
 
     # Read array of corresponding points
-    points1 = readPoints(filename_src + '.txt')
-    points2 = readPoints(filename_dst + '.txt')
+    points1 = readPoints('data/src.txt')
+    points2 = readPoints('data/dst.txt')
 
     # Find convex hull
     hull1 = []
@@ -180,7 +186,6 @@ def make_swap(src_face, mask_prediction):
 
         warpTriangle(src, img1Warped, t1, t2)
 
-    cv2.imshow("sss", img1Warped)
     # Calculate Mask
     hull8U = []
     for i in range(0, len(hull2)):
@@ -195,17 +200,12 @@ def make_swap(src_face, mask_prediction):
     center = (r[0] + int(r[2] / 2), r[1] + int(r[3] / 2))
 
     # Clone seamlessly.
-    mask_out = cv2.subtract(mask, img1Warped)
-    mask_out = cv2.subtract(mask, mask_out)
+    # mask_out = cv2.subtract(mask, img1Warped)
+    # mask_out = cv2.subtract(mask, mask_out)
 
-    cv2.imshow("sssss", mask_out)
-    cv2.imwrite('result.jpg', mask_out)
     output = cv2.seamlessClone(np.uint8(img1Warped), dst, mask, center, cv2.NORMAL_CLONE)
 
-    cv2.imshow("Face Swapped", output)
-    cv2.waitKey(0)
-
-    cv2.destroyAllWindows()
+    return output
 
 
 def main(path_to_frames, path_to_faces, path_to_faces_info, path_to_predictions):
@@ -214,18 +214,42 @@ def main(path_to_frames, path_to_faces, path_to_faces_info, path_to_predictions)
     file_count = len(src_files)
 
     for i in range(file_count):
+        print(i)
         index = src_files[i]
         index = index.split('.')
         index = index[0].split('frame')
         index = int(index[1])
 
-        src_face = cv2.imread((path_to_src_faces + '{i}').format(i=index))
-        mask_prediction = cv2.imread((path_to_predictions + '{i}').format(i=index))
-        frame = cv2.imread((path_to_frames + '{i}').format(i=index))
-        src_face_info = cv2.imread((path_to_faces_info + '{i}').format(i=index))
+        # Read src face
+        src = cv2.imread((path_to_src_faces + 'src_face{i}.jpg').format(i=index))
+        src = cv2.resize(src, (200, 200))
 
-        swaped_face = make_swap(src_face, mask_prediction)
-        cv2.imwrite('swaped.jpg', swaped_face)
+        # Read dst face
+        prediction = cv2.imread((path_to_predictions + 'prediction{i}.jpg').format(i=index))
+        prediction = cv2.resize(prediction, (200, 200))
+
+        # Read frame
+        frame = cv2.imread((path_to_frames + 'src_frame{i}.jpg').format(i=index))
+
+        # Read src info
+        info = None
+        with open((path_to_faces_info + 'src_info{i}.txt').format(i=index), "r") as file:
+            info = file.readline()
+            info = info.split(" ")
+            info = [int(info[0]), int(info[1]), int(info[2]), int(info[3])]
+            print(info)
+
+        # Make face swap
+        swaped_face = make_swap(src=prediction, dst=src)
+        if swaped_face == "fiasko":
+            print("fiasko")
+        else:
+            # Incertion process
+            swaped_face = cv2.resize(swaped_face, (info[2], info[3]))
+            cv2.imwrite('data/swaped_faces/swaped_face{i}.jpg'.format(i=index), swaped_face)
+            frame[info[1]: info[1] + info[3], info[0]: info[0] + info[2]] = swaped_face
+            cv2.imwrite('data/swaped_frames/swaped_frame{i}.jpg'.format(i=index), frame)
+
         break
 
 

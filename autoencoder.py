@@ -8,7 +8,7 @@ from keras.layers import Input
 from models import Autoencoders
 
 
-def make_prediction(input_shape, path_walk, path_to_landmarks):
+def make_prediction(input_shape, path_walk, path_to_faces):
     combined = load_model('data/models/combined_model.h5')
 
     _, _, src_files = next(os.walk(path_walk))
@@ -19,7 +19,7 @@ def make_prediction(input_shape, path_walk, path_to_landmarks):
         index = index[0].split('face')
         index = int(index[1])
 
-        src = np.asarray(cv.imread(path_to_landmarks.format(img=index)))
+        src = np.asarray(cv.imread(path_to_faces.format(img=index)))
         src = src.astype('float32')
         src = src / 255
         src = np.reshape(src, (1, input_shape[0], input_shape[1], input_shape[2]))
@@ -95,7 +95,7 @@ def train(X, Y, epochs, batch_size, input_shape):
         combined.fit(x=Y, y=[X, Y], epochs=1, batch_size=batch_size, callbacks=[checkpoint], validation_data=(Y, [X, Y]))
 
         prediction = combined.predict(X[0:2])
-        cv.imwrite('data/temp/image{epoch}.jpg'.format(epoch=i+65), prediction[1][0]*255)
+        cv.imwrite('data/temp/image{epoch}.jpg'.format(epoch=i+5), prediction[1][0]*255)
 
     combined.save('data/models/combined_model.h5')
 
@@ -116,8 +116,8 @@ def main():
     train_from_picture = False
     picture_examples = 100
     only_predict = False
-    path_to_landmarks = 'data/src/src_landmark/faces/src_face{img}.jpg'
-    path_walk = 'data/src/src_landmark/faces/'
+    path_to_faces = 'data/src/src_video_faces/faces/src_face{img}.jpg'
+    path_walk = 'data/src/src_video_faces/faces/'
 
     epochs = 5
     bacth_size = 2
@@ -140,10 +140,10 @@ def main():
 
     elif train_from_video:
         # Count images from src folder
-        _, _, src_files = next(os.walk("data/src/src_landmark/faces"))
+        _, _, src_files = next(os.walk("data/src/src_video_faces/faces/face_images"))
         src_file_count = len(src_files)
         # Count images from dst folder
-        _, _, dst_files = next(os.walk("data/dst/dst_landmark/faces"))
+        _, _, dst_files = next(os.walk("data/dst/dst_video_faces/faces/face_images"))
         dst_file_count = len(dst_files)
         file_count = None
         if dst_file_count > src_file_count:
@@ -154,12 +154,14 @@ def main():
             file_count = src_file_count = dst_file_count
         # Creating train dataset
         for i in range(file_count):
-            image = cv.imread('data/src/src_landmark/faces/{img}'.format(img=src_files[i]))
+            image = cv.imread('data/src/src_video_faces/faces/face_images/{img}'.format(img=src_files[i]))
+            image = cv.resize(image, (200, 200))
             X.append(image)
         X = np.asarray(X)
 
         for i in range(file_count):
-            image = cv.imread('data/dst/dst_landmark/faces/{img}'.format(img=dst_files[i]))
+            image = cv.imread('data/dst/dst_video_faces/faces/face_images/{img}'.format(img=dst_files[i]))
+            image = cv.resize(image, (200, 200))
             Y.append(image)
         Y = np.asarray(Y)
 
@@ -172,7 +174,7 @@ def main():
     Y /= 255
 
     if only_predict:
-        make_prediction(input_shape, path_walk, path_to_landmarks)
+        make_prediction(input_shape, path_walk, path_to_faces)
     else:
         train(X, Y, epochs, bacth_size, input_shape)
         # test(X, Y)
