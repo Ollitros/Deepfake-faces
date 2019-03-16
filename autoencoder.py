@@ -8,6 +8,28 @@ from keras.layers import Input
 from models import Autoencoders
 
 
+def make_prediction(input_shape, path_walk, path_to_landmarks):
+    combined = load_model('data/models/combined_model.h5')
+
+    _, _, src_files = next(os.walk(path_walk))
+    file_count = len(src_files)
+    for i in range(file_count):
+        index = src_files[i]
+        index = index.split('.')
+        index = index[0].split('face')
+        index = int(index[1])
+
+        src = np.asarray(cv.imread(path_to_landmarks.format(img=index)))
+        src = src.astype('float32')
+        src = src / 255
+        src = np.reshape(src, (1, input_shape[0], input_shape[1], input_shape[2]))
+
+        prediction = combined.predict(src)
+        prediction = np.asarray(prediction)
+        prediction = np.reshape(prediction[1], [input_shape[0], input_shape[1], input_shape[2]]) * 255
+        cv.imwrite('data/predictions/prediction{i}.jpg'.format(i=index), prediction)
+
+
 def test(X, Y):
 
     combined = load_model('data/models/combined_model.h5')
@@ -53,7 +75,7 @@ def train(X, Y, epochs, batch_size, input_shape):
     combined = Model(inputs=encoder_input, outputs=[src_decode, dst_decode])
     combined.compile(loss='mean_squared_error', optimizer='adam')
     print(combined.summary())
-    # combined.load_weights('data/models/combined_model.h5')
+    combined.load_weights('data/models/combined_model.h5')
 
     for i in range(epochs):
         print("######################################################\n"
@@ -73,7 +95,7 @@ def train(X, Y, epochs, batch_size, input_shape):
         combined.fit(x=Y, y=[X, Y], epochs=1, batch_size=batch_size, callbacks=[checkpoint], validation_data=(Y, [X, Y]))
 
         prediction = combined.predict(X[0:2])
-        cv.imwrite('data/temp/image{epoch}.jpg'.format(epoch=i+0), prediction[1][0]*255)
+        cv.imwrite('data/temp/image{epoch}.jpg'.format(epoch=i+65), prediction[1][0]*255)
 
     combined.save('data/models/combined_model.h5')
 
@@ -93,6 +115,9 @@ def main():
     train_from_video = True
     train_from_picture = False
     picture_examples = 100
+    only_predict = False
+    path_to_landmarks = 'data/src/src_landmark/faces/src_face{img}.jpg'
+    path_walk = 'data/src/src_landmark/faces/'
 
     epochs = 5
     bacth_size = 2
@@ -146,8 +171,11 @@ def main():
     X /= 255
     Y /= 255
 
-    train(X, Y, epochs, bacth_size, input_shape)
-    test(X, Y)
+    if only_predict:
+        make_prediction(input_shape, path_walk, path_to_landmarks)
+    else:
+        train(X, Y, epochs, bacth_size, input_shape)
+        # test(X, Y)
 
 
 if __name__ == "__main__":

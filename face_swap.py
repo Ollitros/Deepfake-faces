@@ -1,9 +1,7 @@
-#! /usr/bin/env python
-
-import sys
 import numpy as np
 import dlib
 import cv2
+import os
 from imutils import face_utils
 
 
@@ -124,20 +122,9 @@ def warpTriangle(img1, img2, t1, t2):
     img2[r2[1]:r2[1] + r2[3], r2[0]:r2[0] + r2[2]] = img2[r2[1]:r2[1] + r2[3], r2[0]:r2[0] + r2[2]] + img2Rect
 
 
-if __name__ == '__main__':
+def make_swap(src_face, mask_prediction):
 
-    # Read images
-    filename_src = 'data/src.jpg'
-    filename_dst = 'data/dst.jpg'
-
-    # Read dst and src images
-    src = cv2.imread(filename_src)
-    dst = cv2.imread(filename_dst)
-
-    # Resize
-    src = cv2.resize(src, (300, 300))
-    dst = cv2.resize(dst, (300, 300))
-    img1Warped = np.copy(dst)
+    img1Warped = np.copy(src_face)
 
     # Set dlib parameters
     predictor_path = 'data/face_features/shape_predictor_68_face_landmarks.dat'
@@ -145,9 +132,9 @@ if __name__ == '__main__':
     predictor = dlib.shape_predictor(predictor_path)
 
     # detect face src
-    rects = detector(src, 1)
+    rects = detector(src_face, 1)
     roi = rects[0]  # region of interest
-    shape = predictor(src, roi)
+    shape = predictor(src_face, roi)
     shape = face_utils.shape_to_np(shape)
     np.savetxt('data/src.jpg.txt', shape, fmt="%s")
 
@@ -219,3 +206,34 @@ if __name__ == '__main__':
     cv2.waitKey(0)
 
     cv2.destroyAllWindows()
+
+
+def main(path_to_frames, path_to_faces, path_to_faces_info, path_to_predictions):
+
+    _, _, src_files = next(os.walk(path_to_frames))
+    file_count = len(src_files)
+
+    for i in range(file_count):
+        index = src_files[i]
+        index = index.split('.')
+        index = index[0].split('frame')
+        index = int(index[1])
+
+        src_face = cv2.imread((path_to_src_faces + '{i}').format(i=index))
+        mask_prediction = cv2.imread((path_to_predictions + '{i}').format(i=index))
+        frame = cv2.imread((path_to_frames + '{i}').format(i=index))
+        src_face_info = cv2.imread((path_to_faces_info + '{i}').format(i=index))
+
+        swaped_face = make_swap(src_face, mask_prediction)
+        cv2.imwrite('swaped.jpg', swaped_face)
+        break
+
+
+if __name__ == '__main__':
+    path_to_frames = 'data/src/src_video_faces/frames/'
+    path_to_src_faces = 'data/src/src_video_faces/faces/face_images/'
+    path_to_src_faces_info = 'data/src/src_video_faces/faces/face_info/'
+    path_to_predictions = 'data/predictions/'
+
+    main(path_to_frames=path_to_frames, path_to_faces=path_to_src_faces,
+         path_to_faces_info=path_to_src_faces_info, path_to_predictions=path_to_predictions)
