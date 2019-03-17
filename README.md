@@ -13,3 +13,6 @@ There are all model files in **'data/models/'** folder.
 5) Use **predict_faces.py** to generate faces from train model. Generated images you can find in **'data/predictions/'** directory.
 6) Use **face_swap.py** to take original frames, faces`s metadata and predicted images to swap and write in **'data/swapped_frames/'** folder.
 7) Use **fake_video_maker.py** to create final fake video and save it in **'data/deep_fake_video/'** folder.
+# Recommendations
+1) The **Deepfake-faces** pet-project works well only with videos where faces can be ease recognized. 
+2) This code works only with one face in video. **REMEMBER THIS**. 
