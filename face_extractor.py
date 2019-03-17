@@ -50,7 +50,6 @@ def main(extract_from_video):
                       path_to_info='data/src/src_video_faces/faces/face_info/src_info{step}.txt', path_to_frame='data/src/src_video_faces/frames/src_frame{step}.jpg')
         video_extract(path_from='data/dst/dst_video/data_dst.mp4', path_to='data/dst/dst_video_faces/faces/face_images/dst_face{step}.jpg',
                       path_to_info='data/dst/dst_video_faces/faces/face_info/dst_info{step}.txt', path_to_frame='data/dst/dst_video_faces/frames/dst_frame{step}.jpg')
-
     else:
         print("It`s error, bro.")
 
