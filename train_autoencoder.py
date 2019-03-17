@@ -3,69 +3,24 @@ import cv2 as cv
 import numpy as np
 import matplotlib.pyplot as plt
 from keras.callbacks import ModelCheckpoint
-from keras.models import Model, load_model
+from keras.models import Model
 from keras.layers import Input
 from models import Autoencoders
-
-
-def make_prediction(input_shape, path_walk, path_to_faces):
-    combined = load_model('data/models/combined_model.h5')
-
-    _, _, src_files = next(os.walk(path_walk))
-    file_count = len(src_files)
-    for i in range(file_count):
-        index = src_files[i]
-        index = index.split('.')
-        index = index[0].split('face')
-        index = int(index[1])
-
-        src = np.asarray(cv.imread(path_to_faces.format(img=index)))
-        src = src.astype('float32')
-        src = src / 255
-        src = np.reshape(src, (1, input_shape[0], input_shape[1], input_shape[2]))
-
-        prediction = combined.predict(src)
-        prediction = np.asarray(prediction)
-        prediction = np.reshape(prediction[1], [input_shape[0], input_shape[1], input_shape[2]]) * 255
-        cv.imwrite('data/predictions/prediction{i}.jpg'.format(i=index), prediction)
-
-
-def test(X, Y):
-
-    combined = load_model('data/models/combined_model.h5')
-
-    print(combined.summary())
-
-    # Test model
-    # Generate Y from X
-    prediction = combined.predict(X[0:2])
-    for i in range(1):
-        plt.subplot(231), plt.imshow(X[i], 'gray')
-        plt.subplot(232), plt.imshow(Y[i], 'gray')
-        plt.subplot(233), plt.imshow(prediction[0][i], 'gray')
-        plt.subplot(234), plt.imshow(prediction[1][i], 'gray')
-        plt.show()
-
-    # Generate X from Y
-    prediction = combined.predict(Y[0:2])
-    for i in range(1):
-        plt.subplot(231), plt.imshow(X[i], 'gray')
-        plt.subplot(232), plt.imshow(Y[i], 'gray')
-        plt.subplot(233), plt.imshow(prediction[0][i], 'gray')
-        plt.subplot(234), plt.imshow(prediction[1][i], 'gray')
-        plt.show()
 
 
 def train(X, Y, epochs, batch_size, input_shape):
 
     # Return encoder and two decoders
     encoder, src_decoder, dst_decoder = Autoencoders(input_shape)
+    print(encoder.summary())
+    print(src_decoder.summary())
+    print(dst_decoder.summary())
 
     # Create checkpoint
     filepath = "data/models/checkpoints/combined-{epoch:02d}-{val_loss:.2f}.h5"
     checkpoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=True, mode='auto')
 
-    # Combining two separate models into one. Required creating Input layer
+    # Combining two separate models into one. Required creating Input layer.
     encoder_input = Input(shape=input_shape)
     encode = encoder(encoder_input)
 
@@ -94,8 +49,9 @@ def train(X, Y, epochs, batch_size, input_shape):
         combined.compile(loss='mean_squared_error', optimizer='adam')
         combined.fit(x=Y, y=[X, Y], epochs=1, batch_size=batch_size, callbacks=[checkpoint], validation_data=(Y, [X, Y]))
 
+        # Makes predictions after each epoch and save into temp folder.
         prediction = combined.predict(X[0:2])
-        cv.imwrite('data/temp/image{epoch}.jpg'.format(epoch=i+5), prediction[1][0]*255)
+        cv.imwrite('data/models/temp/image{epoch}.jpg'.format(epoch=i+145), prediction[1][0]*255)
 
     combined.save('data/models/combined_model.h5')
 
@@ -113,32 +69,14 @@ def train(X, Y, epochs, batch_size, input_shape):
 def main():
     # Parameters
     train_from_video = True
-    train_from_picture = False
-    picture_examples = 100
-    only_predict = False
-    path_to_faces = 'data/src/src_video_faces/faces/src_face{img}.jpg'
-    path_walk = 'data/src/src_video_faces/faces/'
-
     epochs = 5
     bacth_size = 2
     input_shape = (200, 200, 3)
 
     X = []
     Y = []
-    if train_from_picture:
-        # x = cv.imread('data/src/src_picture_face/src_face.jpg')
-        # y = cv.imread('data/dst/dst_picture_face/dst_face.jpg')
-        x = cv.imread('data/src/src_picture/src.jpg')
-        y = cv.imread('data/dst/dst_picture/dst.jpg')
-        x = cv.resize(x, (200, 200))
-        y = cv.resize(y, (200, 200))
-        for i in range(picture_examples):
-            X.append(x)
-            Y.append(y)
-        X = np.asarray(X)
-        Y = np.asarray(Y)
 
-    elif train_from_video:
+    if train_from_video:
         # Count images from src folder
         _, _, src_files = next(os.walk("data/src/src_video_faces/faces/face_images"))
         src_file_count = len(src_files)
@@ -173,11 +111,7 @@ def main():
     X /= 255
     Y /= 255
 
-    if only_predict:
-        make_prediction(input_shape, path_walk, path_to_faces)
-    else:
-        train(X, Y, epochs, bacth_size, input_shape)
-        # test(X, Y)
+    train(X, Y, epochs, bacth_size, input_shape)
 
 
 if __name__ == "__main__":

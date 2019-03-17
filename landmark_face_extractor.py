@@ -4,6 +4,11 @@ import cv2 as cv
 import os
 from imutils import face_utils
 
+"""
+    This module is not used in the project. 
+    But the code from this module is very valuable for me as education material.  
+"""
+
 
 # Read points from text file
 def readPoints(path):
@@ -45,7 +50,7 @@ def rectContains(rect, point):
     return True
 
 
-# calculate delanauy triangle
+# Calculate delanauy triangle
 def calculateDelaunayTriangles(rect, points):
     # create subdiv
     subdiv = cv.Subdiv2D(rect)
@@ -53,6 +58,8 @@ def calculateDelaunayTriangles(rect, points):
     # Insert points into subdiv
     for p in points:
         k = []
+
+        # There are 4 'if' blocks which exist only like crutch. Shame on me.
         if p[0] >= 200:
             k.append(200 - 1)
             k.append(p[1])
@@ -150,6 +157,7 @@ def warpTriangle(img1, img2, t1, t2):
     img2[r2[1]:r2[1] + r2[3], r2[0]:r2[0] + r2[2]] = img2[r2[1]:r2[1] + r2[3], r2[0]:r2[0] + r2[2]] + img2Rect
 
 
+# Does face extraction and swapping
 def extract(src, points_path, step, prev_roi):
 
     img1Warped = np.copy(src)
@@ -221,6 +229,7 @@ def extract(src, points_path, step, prev_roi):
     return mask_out, roi
 
 
+# Read all images for extraction
 def make_extraction(path_from, path_to, points_path, path_walk):
 
     _, _, src_files = next(os.walk(path_walk))
@@ -243,18 +252,13 @@ def make_extraction(path_from, path_to, points_path, path_walk):
         print("TOTAL - ", file_count, "||| COMPUTED - ", i)
 
 
-def main(extract_from_video, extract_from_picture):
+def main(extract_from_video):
 
     if extract_from_video:
         make_extraction(path_from='data/src/src_video_faces/faces/face_images/src_face{img}.jpg', path_to='data/src/src_landmark/faces/src_face{step}.jpg',
                         points_path="data/src/src_landmark/points/face_points{step}.txt", path_walk='data/src/src_video_faces/faces/face_images/')
         make_extraction(path_from='data/dst/dst_video_faces/faces/face_images/dst_face{img}.jpg', path_to='data/dst/dst_landmark/faces/dst_face{step}.jpg',
                         points_path="data/dst/dst_landmark/points/face_points{step}.txt", path_walk='data/dst/dst_video_faces/faces/face_images/')
-
-    elif extract_from_picture:
-        # picture_extract(path_from='data/src/src_picture/src.jpg', path_to='data/src/src_picture_face/src_face.jpg')
-        # picture_extract(path_from='data/dst/dst_picture/dst.jpg', path_to='data/dst/dst_picture_face/dst_face.jpg')
-        print("It`s error, bro.")
     else:
         print("It`s error, bro.")
 
@@ -262,6 +266,5 @@ def main(extract_from_video, extract_from_picture):
 if __name__ == "__main__":
 
     extract_from_video = True
-    extract_from_picture = False
 
-    main(extract_from_video, extract_from_picture)
+    main(extract_from_video)

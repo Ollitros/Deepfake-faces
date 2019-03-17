@@ -199,6 +199,7 @@ def make_swap(src, dst):
 
     center = (r[0] + int(r[2] / 2), r[1] + int(r[3] / 2))
 
+    # Extracts face by mask
     # Clone seamlessly.
     # mask_out = cv2.subtract(mask, img1Warped)
     # mask_out = cv2.subtract(mask, mask_out)
@@ -246,11 +247,8 @@ def main(path_to_frames, path_to_faces, path_to_faces_info, path_to_predictions)
         else:
             # Incertion process
             swaped_face = cv2.resize(swaped_face, (info[2], info[3]))
-            cv2.imwrite('data/swaped_faces/swaped_face{i}.jpg'.format(i=index), swaped_face)
             frame[info[1]: info[1] + info[3], info[0]: info[0] + info[2]] = swaped_face
-            cv2.imwrite('data/swaped_frames/swaped_frame{i}.jpg'.format(i=index), frame)
-
-        break
+            cv2.imwrite('data/swapped_frames/swapped_frame{i}.jpg'.format(i=index), frame)
 
 
 if __name__ == '__main__':

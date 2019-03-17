@@ -1,8 +1,16 @@
-from keras.layers import Input, Conv2D, UpSampling2D, MaxPool2D, BatchNormalization, LeakyReLU, Dropout, Activation
+from keras.layers import Input, Conv2D, UpSampling2D, MaxPool2D, BatchNormalization, Dropout, Activation
 from keras.models import Model
 
 
 def Autoencoders(input_shape):
+    """
+            Autoencoders function creates three models: encoder model (common for two decoders), src decoder (which
+        decodes features from common encoder and tries to reconstruct source image), dst decoder (which decodes features
+        from common encoder and tries to reconstruct destination image).
+
+        :param input_shape:
+        :return: model
+    """
 
     def conv_block(inputs, filters, kernel_size, padding, activation):
         x = Conv2D(filters, kernel_size, padding=padding)(inputs)
