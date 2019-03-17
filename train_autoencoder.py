@@ -51,7 +51,7 @@ def train(X, Y, epochs, batch_size, input_shape):
 
         # Makes predictions after each epoch and save into temp folder.
         prediction = combined.predict(X[0:2])
-        cv.imwrite('data/models/temp/image{epoch}.jpg'.format(epoch=i+145), prediction[1][0]*255)
+        cv.imwrite('data/models/temp/image{epoch}.jpg'.format(epoch=i+150), prediction[1][0]*255)
 
     combined.save('data/models/combined_model.h5')
 
