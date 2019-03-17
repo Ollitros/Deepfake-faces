@@ -1,5 +1,5 @@
-# DeepFakes
-My independent implementation of DeepFakes. 
+# Deepfake-faces
+My independent implementation of Deepfake. 
 This is only **pet-project**.
 # How to use
 1) Put source video named **'data_src.mp4'** into **'data/src/src_video/'** folder.
