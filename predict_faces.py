@@ -23,6 +23,7 @@ def make_prediction(input_shape, path_walk, path_to_faces):
 
         prediction = combined.predict(src)
         prediction = np.asarray(prediction)
+        # prediction = cv2.fastNlMeansDenoisingColored(prediction, None, 10, 10, 7, 21)
         prediction = np.reshape(prediction[1], [input_shape[0], input_shape[1], input_shape[2]]) * 255
         cv2.imwrite('data/predictions/prediction{i}.jpg'.format(i=index), prediction)
 

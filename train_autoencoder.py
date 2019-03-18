@@ -3,9 +3,22 @@ import cv2 as cv
 import numpy as np
 import matplotlib.pyplot as plt
 from keras.callbacks import ModelCheckpoint
-from keras.models import Model
+from keras.models import Model, load_model
 from keras.layers import Input
 from models import Autoencoders
+
+
+def test(X, Y):
+
+    model = load_model('data/combined_model.h5')
+
+    prediction = model.predict(X[0:2])
+    for i in range(1):
+        plt.subplot(231), plt.imshow(X[i], 'gray')
+        plt.subplot(232), plt.imshow(Y[i], 'gray')
+        plt.subplot(233), plt.imshow(prediction[0][i], 'gray')
+        plt.subplot(234), plt.imshow(prediction[1][i], 'gray')
+        plt.show()
 
 
 def train(X, Y, epochs, batch_size, input_shape):
@@ -51,7 +64,7 @@ def train(X, Y, epochs, batch_size, input_shape):
 
         # Makes predictions after each epoch and save into temp folder.
         prediction = combined.predict(X[0:2])
-        cv.imwrite('data/models/temp/image{epoch}.jpg'.format(epoch=i+155), prediction[1][0]*255)
+        cv.imwrite('data/models/temp/image{epoch}.jpg'.format(epoch=i+200), prediction[1][0]*255)
 
     combined.save('data/models/combined_model.h5')
 
@@ -69,6 +82,8 @@ def train(X, Y, epochs, batch_size, input_shape):
 def main():
     # Parameters
     train_from_video = True
+    train_bool = False
+    test_bool = True
     epochs = 5
     bacth_size = 2
     input_shape = (200, 200, 3)
@@ -111,7 +126,12 @@ def main():
     X /= 255
     Y /= 255
 
-    train(X, Y, epochs, bacth_size, input_shape)
+    if train_bool:
+        train(X, Y, epochs, bacth_size, input_shape)
+    elif test_bool:
+        test(X, Y)
+    else:
+        print("It`s fiasko, bro.")
 
 
 if __name__ == "__main__":
