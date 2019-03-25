@@ -1,8 +1,10 @@
 import cv2 as cv
+from mtcnn.mtcnn import MTCNN
 
 
 def video_extract(path_from, path_to, path_to_info, path_to_frame):
-    face_cascade = cv.CascadeClassifier('data/face_features/haarcascade_frontalface_default.xml')
+
+    detector = MTCNN()
     cap = cv.VideoCapture(path_from)
 
     step = 0
@@ -15,26 +17,27 @@ def video_extract(path_from, path_to, path_to_info, path_to_frame):
             break
 
         # Display the resulting frame
-        gray = cv.cvtColor(frame, cv.COLOR_RGB2GRAY)
-        faces = face_cascade.detectMultiScale(gray, 1.3, 5)
-        for (x, y, w, h) in faces:
-            # Such arithmetic manipulations exists for expanding face region
-            # to increase chances be detected by others modules.
-            x = x - 70
-            y = y - 70
-            w = w + 110
-            h = h + 110
-            roi_color = frame[y:y + h, x:x + w]
-            if roi_color is not None:
-                if w <= 100 or h <= 100:
-                    continue
-                else:
-                    print(x, y, w, h)
-                    cv.imwrite(path_to.format(step=step), roi_color)
-                    cv.imwrite(path_to_frame.format(step=step), frame)
-                    with open(path_to_info.format(step=step), "w") as file:
-                        print(x, y, w, h, file=file)
-                    step = step + 1
+        detection = detector.detect_faces(frame)
+        if len(detection) <= 0:
+            continue
+        coords = detection[0]['box']
+
+        x = coords[0]
+        y = coords[1]
+        w = coords[2]
+        h = coords[3]
+        roi_color = frame[y:y + h, x:x + w]
+
+        if roi_color is not None:
+            if w <= 100 or h <= 100:
+                continue
+            else:
+                print(x, y, w, h)
+                cv.imwrite(path_to.format(step=step), roi_color)
+                cv.imwrite(path_to_frame.format(step=step), frame)
+                with open(path_to_info.format(step=step), "w") as file:
+                    print(x, y, w, h, file=file)
+                step = step + 1
 
         if cv.waitKey(1) == ord('q'):
             break

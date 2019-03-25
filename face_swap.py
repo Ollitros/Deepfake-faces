@@ -121,7 +121,7 @@ def warpTriangle(img1, img2, t1, t2):
     img2[r2[1]:r2[1] + r2[3], r2[0]:r2[0] + r2[2]] = img2[r2[1]:r2[1] + r2[3], r2[0]:r2[0] + r2[2]] + img2Rect
 
 
-def make_swap(src, dst):
+def make_swap(src, dst, padding):
 
     img1Warped = np.copy(dst)
 
@@ -132,22 +132,28 @@ def make_swap(src, dst):
 
     # detect face src
     rects = detector(src, 1)
+    print('rects - ', rects)
+
     try:
         roi = rects[0]  # region of interest
     except IndexError:
         return 'fiasko'
     shape = predictor(src, roi)
+    # shape = src[y:y + h, x:x + w]
     shape = face_utils.shape_to_np(shape)
     np.savetxt('data/src.txt', shape, fmt="%s")
 
     # detect face dst
     rects = detector(dst, 1)
+    print('rects - ', rects)
+
     try:
         roi = rects[0]  # region of interest
     except IndexError:
         return 'fiasko'
 
     shape = predictor(dst, roi)
+    # shape = dst[y:y + h, x:x + w]
     shape = face_utils.shape_to_np(shape)
     np.savetxt('data/dst.txt', shape, fmt="%s")
 
@@ -205,6 +211,8 @@ def make_swap(src, dst):
     # mask_out = cv2.subtract(mask, mask_out)
 
     output = cv2.seamlessClone(np.uint8(img1Warped), dst, mask, center, cv2.NORMAL_CLONE)
+    shape = output.shape
+    output = output[padding: shape[0] - padding, padding: shape[1] - padding]
 
     return output
 
@@ -240,8 +248,14 @@ def main(path_to_frames, path_to_faces, path_to_faces_info, path_to_predictions)
             info = [int(info[0]), int(info[1]), int(info[2]), int(info[3])]
             print(info)
 
+        # make paddings
+        padding = 20
+        prediction = cv2.copyMakeBorder(prediction, padding, padding, padding, padding, cv2.BORDER_CONSTANT, value=[0,0,0])
+        src = cv2.copyMakeBorder(src, padding, padding, padding, padding, cv2.BORDER_CONSTANT, value=[0, 0, 0])
+
         # Make face swap
-        swaped_face = make_swap(src=prediction, dst=src)
+        swaped_face = make_swap(src=prediction, dst=src, padding=padding)
+
         if swaped_face == "fiasko":
             print("fiasko")
         else:
