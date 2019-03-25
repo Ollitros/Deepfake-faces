@@ -132,7 +132,6 @@ def make_swap(src, dst, padding):
 
     # detect face src
     rects = detector(src, 1)
-    print('rects - ', rects)
 
     try:
         roi = rects[0]  # region of interest
@@ -145,7 +144,6 @@ def make_swap(src, dst, padding):
 
     # detect face dst
     rects = detector(dst, 1)
-    print('rects - ', rects)
 
     try:
         roi = rects[0]  # region of interest
@@ -221,7 +219,7 @@ def main(path_to_frames, path_to_faces, path_to_faces_info, path_to_predictions)
 
     _, _, src_files = next(os.walk(path_to_frames))
     file_count = len(src_files)
-
+    fiasko = 0
     for i in range(file_count):
         print(i)
         index = src_files[i]
@@ -234,7 +232,8 @@ def main(path_to_frames, path_to_faces, path_to_faces_info, path_to_predictions)
         src = cv2.resize(src, (200, 200))
 
         # Read dst face
-        prediction = cv2.imread((path_to_predictions + 'prediction{i}.jpg').format(i=index))
+        # prediction = cv2.imread((path_to_predictions + 'prediction{i}.jpg').format(i=index))
+        prediction = cv2.imread((path_to_predictions + 'dst_face{i}.jpg').format(i=index))
         prediction = cv2.resize(prediction, (200, 200))
 
         # Read frame
@@ -246,30 +245,34 @@ def main(path_to_frames, path_to_faces, path_to_faces_info, path_to_predictions)
             info = file.readline()
             info = info.split(" ")
             info = [int(info[0]), int(info[1]), int(info[2]), int(info[3])]
-            print(info)
 
         # make paddings
-        padding = 20
+        padding = 50
         prediction = cv2.copyMakeBorder(prediction, padding, padding, padding, padding, cv2.BORDER_CONSTANT, value=[0,0,0])
         src = cv2.copyMakeBorder(src, padding, padding, padding, padding, cv2.BORDER_CONSTANT, value=[0, 0, 0])
 
         # Make face swap
         swaped_face = make_swap(src=prediction, dst=src, padding=padding)
 
+        # Fiasko - its unrecognized faces
         if swaped_face == "fiasko":
             print("fiasko")
+            fiasko = fiasko + 1
         else:
             # Incertion process
             swaped_face = cv2.resize(swaped_face, (info[2], info[3]))
             frame[info[1]: info[1] + info[3], info[0]: info[0] + info[2]] = swaped_face
             cv2.imwrite('data/swapped_frames/swapped_frame{i}.jpg'.format(i=index), frame)
 
+    print("Fisko: ", fiasko)
+
 
 if __name__ == '__main__':
     path_to_frames = 'data/src/src_video_faces/frames/'
     path_to_src_faces = 'data/src/src_video_faces/faces/face_images/'
     path_to_src_faces_info = 'data/src/src_video_faces/faces/face_info/'
-    path_to_predictions = 'data/predictions/'
+    # path_to_predictions = 'data/predictions/'
+    path_to_predictions = 'data/dst/dst_video_faces/faces/face_images/'
 
     main(path_to_frames=path_to_frames, path_to_faces=path_to_src_faces,
          path_to_faces_info=path_to_src_faces_info, path_to_predictions=path_to_predictions)

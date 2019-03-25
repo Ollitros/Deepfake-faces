@@ -11,7 +11,8 @@ def main():
     for i in range(file_count):
 
         img = cv2.imread('data/swapped_frames/swapped_frame{index}.jpg'.format(index=i))
-        img = cv2.resize(img, (200, 200))
+        if img is None:
+            continue
         height, width, layers = img.shape
         size = (width, height)
         img_array.append(img)
@@ -21,6 +22,8 @@ def main():
     for i in range(len(img_array)):
         out.write(img_array[i])
     out.release()
+
+    print("Video converted.")
 
 
 if __name__ == "__main__":

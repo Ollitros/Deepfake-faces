@@ -6,13 +6,23 @@ from keras.callbacks import ModelCheckpoint
 from keras.models import Model, load_model
 from keras.layers import Input
 from models import Autoencoders
+import model
 
 
 def test(X, Y):
 
-    model = load_model('data/combined_model.h5')
+    encoder, src_decoder, dst_decoder = model.Autoencoders((256,256,3))
+    # Combining two separate models into one. Required creating Input layer.
+    encoder_input = Input(shape=(256, 256, 3))
+    encode = encoder(encoder_input)
+    src_decode = src_decoder(encode)
+    dst_decode = dst_decoder(encode)
+    combined = Model(inputs=encoder_input, outputs=[src_decode, dst_decode])
+    combined.compile(loss='mean_squared_error', optimizer='adam')
+    print(combined.summary())
+    combined.load_weights('data/combined_model.h5')
 
-    prediction = model.predict(X[0:2])
+    prediction = combined.predict(X[0:2])
     for i in range(1):
         plt.subplot(231), plt.imshow(X[i], 'gray')
         plt.subplot(232), plt.imshow(Y[i], 'gray')
@@ -108,13 +118,13 @@ def main():
         # Creating train dataset
         for i in range(file_count):
             image = cv.imread('data/src/src_video_faces/faces/face_images/{img}'.format(img=src_files[i]))
-            image = cv.resize(image, (200, 200))
+            image = cv.resize(image, (256, 256))
             X.append(image)
         X = np.asarray(X)
 
         for i in range(file_count):
             image = cv.imread('data/dst/dst_video_faces/faces/face_images/{img}'.format(img=dst_files[i]))
-            image = cv.resize(image, (200, 200))
+            image = cv.resize(image, (256, 256))
             Y.append(image)
         Y = np.asarray(Y)
 
