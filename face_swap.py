@@ -215,7 +215,7 @@ def make_swap(src, dst, padding):
     return output
 
 
-def main(path_to_frames, path_to_faces, path_to_faces_info, path_to_predictions):
+def main(path_to_frames, path_to_src_faces, path_to_faces_info, path_to_predictions):
 
     _, _, src_files = next(os.walk(path_to_frames))
     file_count = len(src_files)
@@ -232,8 +232,7 @@ def main(path_to_frames, path_to_faces, path_to_faces_info, path_to_predictions)
         src = cv2.resize(src, (200, 200))
 
         # Read dst face
-        # prediction = cv2.imread((path_to_predictions + 'prediction{i}.jpg').format(i=index))
-        prediction = cv2.imread((path_to_predictions + 'dst_face{i}.jpg').format(i=index))
+        prediction = cv2.imread((path_to_predictions + 'prediction{i}.jpg').format(i=index))
         prediction = cv2.resize(prediction, (200, 200))
 
         # Read frame
@@ -271,8 +270,7 @@ if __name__ == '__main__':
     path_to_frames = 'data/src/src_video_faces/frames/'
     path_to_src_faces = 'data/src/src_video_faces/faces/face_images/'
     path_to_src_faces_info = 'data/src/src_video_faces/faces/face_info/'
-    # path_to_predictions = 'data/predictions/'
-    path_to_predictions = 'data/dst/dst_video_faces/faces/face_images/'
+    path_to_predictions = 'data/predictions/'
 
-    main(path_to_frames=path_to_frames, path_to_faces=path_to_src_faces,
+    main(path_to_frames=path_to_frames, path_to_src_faces=path_to_src_faces,
          path_to_faces_info=path_to_src_faces_info, path_to_predictions=path_to_predictions)

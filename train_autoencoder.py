@@ -6,14 +6,14 @@ from keras.callbacks import ModelCheckpoint
 from keras.models import Model, load_model
 from keras.layers import Input
 from models import Autoencoders
-import model
+import models
 
 
 def test(X, Y):
 
-    encoder, src_decoder, dst_decoder = model.Autoencoders((256,256,3))
+    encoder, src_decoder, dst_decoder = models.Autoencoders((128, 128, 3))
     # Combining two separate models into one. Required creating Input layer.
-    encoder_input = Input(shape=(256, 256, 3))
+    encoder_input = Input(shape=(128, 128, 3))
     encode = encoder(encoder_input)
     src_decode = src_decoder(encode)
     dst_decode = dst_decoder(encode)
@@ -35,9 +35,6 @@ def train(X, Y, epochs, batch_size, input_shape):
 
     # Return encoder and two decoders
     encoder, src_decoder, dst_decoder = Autoencoders(input_shape)
-    print(encoder.summary())
-    print(src_decoder.summary())
-    print(dst_decoder.summary())
 
     # Create checkpoint
     filepath = "data/models/checkpoints/combined-{epoch:02d}-{val_loss:.2f}.h5"
@@ -53,7 +50,7 @@ def train(X, Y, epochs, batch_size, input_shape):
     combined = Model(inputs=encoder_input, outputs=[src_decode, dst_decode])
     combined.compile(loss='mean_squared_error', optimizer='adam')
     print(combined.summary())
-    combined.load_weights('data/models/combined_model.h5')
+    # combined.load_weights('data/models/combined_model.h5')
 
     for i in range(epochs):
         print("######################################################\n"
@@ -75,6 +72,7 @@ def train(X, Y, epochs, batch_size, input_shape):
         # Makes predictions after each epoch and save into temp folder.
         prediction = combined.predict(X[0:2])
         cv.imwrite('data/models/temp/image{epoch}.jpg'.format(epoch=i+200), prediction[1][0]*255)
+        combined.save('data/models/combined_model.h5')
 
     combined.save('data/models/combined_model.h5')
 
@@ -91,45 +89,14 @@ def train(X, Y, epochs, batch_size, input_shape):
 
 def main():
     # Parameters
-    train_from_video = True
-    train_bool = False
-    test_bool = True
+    train_bool = True
+    test_bool = False
     epochs = 5
-    bacth_size = 2
-    input_shape = (200, 200, 3)
+    batch_size = 10
+    input_shape = (128, 128, 3)
 
-    X = []
-    Y = []
-
-    if train_from_video:
-        # Count images from src folder
-        _, _, src_files = next(os.walk("data/src/src_video_faces/faces/face_images"))
-        src_file_count = len(src_files)
-        # Count images from dst folder
-        _, _, dst_files = next(os.walk("data/dst/dst_video_faces/faces/face_images"))
-        dst_file_count = len(dst_files)
-        file_count = None
-        if dst_file_count > src_file_count:
-            file_count = src_file_count
-        elif dst_file_count < src_file_count:
-            file_count = dst_file_count
-        else:
-            file_count = src_file_count = dst_file_count
-        # Creating train dataset
-        for i in range(file_count):
-            image = cv.imread('data/src/src_video_faces/faces/face_images/{img}'.format(img=src_files[i]))
-            image = cv.resize(image, (256, 256))
-            X.append(image)
-        X = np.asarray(X)
-
-        for i in range(file_count):
-            image = cv.imread('data/dst/dst_video_faces/faces/face_images/{img}'.format(img=dst_files[i]))
-            image = cv.resize(image, (256, 256))
-            Y.append(image)
-        Y = np.asarray(Y)
-
-    else:
-        print("It`s fiasko, bro.")
+    X = np.load('data/X.npy')
+    Y = np.load('data/Y.npy')
 
     X = X.astype('float32')
     Y = Y.astype('float32')
@@ -137,7 +104,7 @@ def main():
     Y /= 255
 
     if train_bool:
-        train(X, Y, epochs, bacth_size, input_shape)
+        train(X, Y, epochs, batch_size, input_shape)
     elif test_bool:
         test(X, Y)
     else:
