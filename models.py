@@ -1,9 +1,10 @@
 from keras.layers import Input, Conv2D, UpSampling2D, MaxPool2D, BatchNormalization, Dropout, Activation, LeakyReLU, Dense, Reshape, Flatten
 from keras.models import Model
+from keras_contrib.layers.normalization.instancenormalization import InstanceNormalization
 from PixelShuffler import PixelShuffler
 
 
-def Autoencoders(input_shape):
+def Generator(input_shape):
     """
             Autoencoders function creates three models: encoder model (common for two decoders), src decoder (which
         decodes features from common encoder and tries to reconstruct source image), dst decoder (which decodes features
@@ -16,8 +17,8 @@ def Autoencoders(input_shape):
     def conv_block(filters):
         def block(x):
             x = Conv2D(filters, kernel_size=3, strides=2, padding='same')(x)
-            x = BatchNormalization()(x)
-            x = LeakyReLU(0.1)(x)
+            x = InstanceNormalization()(x)
+            x = LeakyReLU(0.2)(x)
             return x
 
         return block
@@ -25,8 +26,8 @@ def Autoencoders(input_shape):
     def upscale(filters):
         def block(x):
             x = Conv2D(filters * 4, kernel_size=3, padding='same')(x)
-            x = BatchNormalization()(x)
-            x = LeakyReLU(0.1)(x)
+            x = InstanceNormalization()(x)
+            x = LeakyReLU(0.2)(x)
             x = PixelShuffler()(x)
             return x
 
@@ -40,7 +41,6 @@ def Autoencoders(input_shape):
     x = conv_block(256)(encoder_inputs)
     x = conv_block(512)(x)
     x = conv_block(1024)(x)
-
     encoder_output = upscale(512)(x)
 
     # # #######################
@@ -76,7 +76,30 @@ def Autoencoders(input_shape):
     return encoder, src_decoder, dst_decoder
 
 
-# Autoencoders((256, 256, 3))
+def Discriminator(image_shape, filters=64):
+
+    def d_layer(layer_input, filters, f_size=4):
+        """Discriminator layer"""
+        x = Conv2D(filters, kernel_size=f_size, strides=2, padding='same')(layer_input)
+        x = LeakyReLU(alpha=0.2)(x)
+        x = InstanceNormalization()(x)
+
+        return x
+
+    inputs = Input(shape=image_shape)
+
+    x = d_layer(inputs, filters)
+    x = d_layer(x,  filters * 2)
+    x = d_layer(x,  filters * 4)
+    x = d_layer(x,  filters * 8)
+    validity = Conv2D(1, kernel_size=4, strides=1, padding='same')(x)
+
+    discriminator = Model(inputs, validity)
+    discriminator.compile(loss='mse', optimizer='adam', metrics=['accuracy'])
+    print(discriminator.summary())
+
+    return discriminator
+
 
 # ###################################################################################
 # This code just for example to investigate how create such model with gotten weights
