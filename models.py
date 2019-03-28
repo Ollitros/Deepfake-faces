@@ -1,7 +1,5 @@
-from keras.layers import Input, Conv2D, UpSampling2D, MaxPool2D, BatchNormalization, Dropout, Activation, LeakyReLU, Dense, Reshape, Flatten
 from keras.models import Model
-from keras_contrib.layers.normalization.instancenormalization import InstanceNormalization
-from PixelShuffler import PixelShuffler
+from custom_blocks import *
 
 
 def Generator(input_shape):
@@ -14,59 +12,86 @@ def Generator(input_shape):
         :return: model
     """
 
-    def conv_block(filters):
-        def block(x):
-            x = Conv2D(filters, kernel_size=3, strides=2, padding='same')(x)
-            x = InstanceNormalization()(x)
-            x = LeakyReLU(0.2)(x)
-            return x
-
-        return block
-
-    def upscale(filters):
-        def block(x):
-            x = Conv2D(filters * 4, kernel_size=3, padding='same')(x)
-            x = InstanceNormalization()(x)
-            x = LeakyReLU(0.2)(x)
-            x = PixelShuffler()(x)
-            return x
-
-        return block
-
     # #######################
     # ## Make encoder
     # #######################
 
     encoder_inputs = Input(shape=input_shape)
-    x = conv_block(256)(encoder_inputs)
+    x = Conv2D(64, kernel_size=5, use_bias=False, padding="same")(encoder_inputs)
+    x = conv_block(128)(x)
+    x = conv_block(256)(x)
+    x = self_attn_block(x, 256)
     x = conv_block(512)(x)
+    x = self_attn_block(x, 512)
     x = conv_block(1024)(x)
+
+    activ_map_size = input_shape[0] // 16
+    while activ_map_size > 4:
+        x = conv_block(1024)(x)
+        activ_map_size = activ_map_size // 2
+
+    x = Dense(1024)(Flatten()(x))
+    x = Dense(4 * 4 * 1024)(x)
+    x = Reshape((4, 4, 1024))(x)
     encoder_output = upscale(512)(x)
 
     # # #######################
     # # ## Make src_decoder
     # # #######################
 
-    src_inputs = Input(shape=(32, 32, 512))
-    src_decoder_input = upscale(512)(src_inputs)
-    x = upscale(256)(src_decoder_input)
-    src_decoder_output = Conv2D(3, kernel_size=3, padding='same', activation='sigmoid')(x)
+    src_inputs = Input(shape=(8, 8, 512))
+    x = upscale(256)(src_inputs)
+    x = upscale(128)(x)
+    x = self_attn_block(x, 128)
+    x = upscale(64)(x)
+    x = res_block(x, 64)
+    x = self_attn_block(x, 64)
+    x = upscale(64)(x)
+
+    outputs = []
+    activ_map_size = input_shape[0] * 8
+    while activ_map_size < 128:
+        outputs.append(Conv2D(3, kernel_size=5, padding='same', activation="tanh")(x))
+        x = upscale(64)(x)
+        x = conv_block(64, strides=1)(x)
+        activ_map_size *= 2
+
+    out = Conv2D(3, kernel_size=5, padding='same', activation="sigmoid")(x)
+    outputs.append(out)
+    src_decoder_output = outputs
 
     # # #######################
     # # ## Make dst_decoder
     # # #######################
 
-    dst_inputs = Input(shape=(32, 32, 512))
-    dst_decoder_input = upscale(512)(dst_inputs)
-    x = upscale(256)(dst_decoder_input)
-    dst_decoder_output = Conv2D(3, kernel_size=3, padding='same', activation='sigmoid')(x)
+    dst_inputs = Input(shape=(8, 8, 512))
+    x = upscale(256)(dst_inputs)
+    x = upscale(128)(x)
+    x = self_attn_block(x, 128)
+    x = upscale(64)(x)
+    x = res_block(x, 64)
+    x = self_attn_block(x, 64)
+    x = upscale(64)(x)
 
+    outputs = []
+    activ_map_size = input_shape[0] * 8
+    while activ_map_size < 128:
+        outputs.append(Conv2D(3, kernel_size=5, padding='same', activation="tanh")(x))
+        x = upscale(64)(x)
+        x = conv_block(64, strides=1)(x)
+        activ_map_size *= 2
+
+    out = Conv2D(3, kernel_size=5, padding='same', activation="sigmoid")(x)
+    outputs.append(out)
+    dst_decoder_output = outputs
+
+    # Build and compile
     encoder = Model(inputs=encoder_inputs, outputs=encoder_output)
     encoder.compile(loss='mean_squared_error', optimizer='adam')
 
     src_decoder = Model(inputs=src_inputs, outputs=src_decoder_output)
     src_decoder.compile(loss='mean_squared_error', optimizer='adam')
-    #
+
     dst_decoder = Model(inputs=dst_inputs, outputs=dst_decoder_output)
     dst_decoder.compile(loss='mean_squared_error', optimizer='adam')
     print(encoder.summary())
@@ -76,30 +101,28 @@ def Generator(input_shape):
     return encoder, src_decoder, dst_decoder
 
 
-def Discriminator(image_shape, filters=64):
-
-    def d_layer(layer_input, filters, f_size=4):
-        """Discriminator layer"""
-        x = Conv2D(filters, kernel_size=f_size, strides=2, padding='same')(layer_input)
-        x = LeakyReLU(alpha=0.2)(x)
-        x = InstanceNormalization()(x)
-
-        return x
+def Discriminator(image_shape):
 
     inputs = Input(shape=image_shape)
 
-    x = d_layer(inputs, filters)
-    x = d_layer(x,  filters * 2)
-    x = d_layer(x,  filters * 4)
-    x = d_layer(x,  filters * 8)
-    validity = Conv2D(1, kernel_size=4, strides=1, padding='same')(x)
+    x = d_layer(inputs, 128)
+    x = d_layer(x,  256)
+    x = d_layer(x,  512)
+    x = self_attn_block(x, 512)
 
-    discriminator = Model(inputs, validity)
+    activ_map_size = image_shape[0] // 8
+    while activ_map_size > 8:
+        x = d_layer(x, 256)
+        x = self_attn_block(x, 256)
+        activ_map_size = activ_map_size // 2
+
+    out = Conv2D(1, kernel_size=3, padding="same")(x)
+
+    discriminator = Model(inputs, out)
     discriminator.compile(loss='mse', optimizer='adam', metrics=['accuracy'])
     print(discriminator.summary())
 
     return discriminator
-
 
 # ###################################################################################
 # This code just for example to investigate how create such model with gotten weights

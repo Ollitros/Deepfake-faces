@@ -40,8 +40,10 @@ def train(X, Y, epochs, batch_size, input_shape):
 
     # Return encoder, two decoders, and two discriminators
     encoder, src_decoder, dst_decoder = Generator(input_shape)
-    src_discriminator = Discriminator(image_shape=input_shape, filters=64)
-    dst_discriminator = Discriminator(image_shape=input_shape, filters=64)
+    src_discriminator = Discriminator(image_shape=input_shape)
+    dst_discriminator = Discriminator(image_shape=input_shape)
+    src_discriminator.compile(loss='mse', optimizer='adam')
+    dst_discriminator.compile(loss='mse', optimizer='adam')
 
     # Combining two separate models into one. Required creating Input layer.
     # Create common encoder
@@ -52,13 +54,15 @@ def train(X, Y, epochs, batch_size, input_shape):
     src_decode = src_decoder(encode)
     dst_decode = dst_decoder(encode)
 
+    src_discriminator.trainable = False
+    dst_discriminator.trainable = False
+
     # Create discriminators
     src_discriminate = src_discriminator(src_decode)
     dst_discriminate = dst_discriminator(dst_decode)
 
-    combined = Model(inputs=encoder_input, outputs=[src_decode, dst_decode,
-                                                    src_discriminate, dst_discriminate])
-    combined.compile(loss=['mse', 'mse', 'mse', 'mse'], optimizer='adam')
+    combined = Model(inputs=encoder_input, outputs=[src_discriminate, dst_discriminate])
+    combined.compile(loss='mse', optimizer='adam')
     print(combined.summary())
     # combined.load_weights('data/models/combined_model.h5')
 
@@ -75,10 +79,6 @@ def train(X, Y, epochs, batch_size, input_shape):
               "\n######################################################\n"
               "######################################################\n")
 
-        encoder.trainable = True
-        src_decoder.trainable = True
-        dst_decoder.trainable = True
-
         # ################## #
         # Train discriminators
         # Get encoder output
@@ -86,55 +86,56 @@ def train(X, Y, epochs, batch_size, input_shape):
         encoder_output_Y = encoder.predict(Y)
 
         # Get decoders output by encoders output
-        src_generated = src_decoder.predict(encoder_output_Y)
-        dst_generated = dst_decoder.predict(encoder_output_X)
+        src_generated = src_decoder.predict(encoder_output_X)
+        dst_generated = dst_decoder.predict(encoder_output_Y)
 
         # Train src discriminator
         src_discriminator.fit(X, valid, batch_size=batch_size, epochs=1)
         src_discriminator.fit(src_generated, fake, batch_size=batch_size, epochs=1)
+
         # Train dst discriminator
         dst_discriminator.fit(Y, valid, batch_size=batch_size, epochs=1)
         dst_discriminator.fit(dst_generated, fake, batch_size=batch_size, epochs=1)
 
         # ############### #
         # Train generators
+        # Train src generator
         src_decoder.trainable = True
         dst_decoder.trainable = False
         src_discriminator.trainable = False
         dst_discriminator.trainable = False
-        combined.compile(loss='mean_squared_error', optimizer='adam')
-        combined.fit(x=X, y=[X, Y, fake, fake], epochs=1, batch_size=batch_size)
-
+        combined.fit(x=X, y=[valid, valid], epochs=1, batch_size=batch_size)
+        # Train dst generator
         src_decoder.trainable = False
         dst_decoder.trainable = True
         src_discriminator.trainable = False
         dst_discriminator.trainable = False
-        combined.compile(loss='mean_squared_error', optimizer='adam')
-        combined.fit(x=Y, y=[X, Y, fake, fake], epochs=1, batch_size=batch_size)
+        combined.fit(x=Y, y=[valid, valid], epochs=1, batch_size=batch_size)
 
         # Makes predictions after each epoch and save into temp folder.
-        prediction = combined.predict(X[0:2])
-        cv.imwrite('data/models/temp/image{epoch}.jpg'.format(epoch=i+0), prediction[1][0]*255)
-        combined.save('data/models/combined_model.h5')
+        prediction = encoder.predict(X[0:2])
+        prediction = dst_decoder.predict(prediction)
+        cv.imwrite('data/models/temp/image{epoch}.jpg'.format(epoch=i+0), prediction[0]*255)
+        # combined.save('data/models/combined_model.h5')
 
     combined.save('data/models/combined_model.h5')
 
     # Test model
-    prediction = combined.predict(X[0:2])
+    prediction = encoder.predict(X[0:2])
+    prediction = dst_decoder.predict(prediction)
 
     for i in range(1):
        plt.subplot(231), plt.imshow(X[i], 'gray')
        plt.subplot(232), plt.imshow(Y[i], 'gray')
-       plt.subplot(233), plt.imshow(prediction[0][i], 'gray')
-       plt.subplot(234), plt.imshow(prediction[1][i], 'gray')
+       plt.subplot(233), plt.imshow(prediction[i], 'gray')
        plt.show()
 
 
 def main():
     # Parameters
-    train_bool = False
-    test_bool = True
-    epochs = 5
+    train_bool = True
+    test_bool = False
+    epochs = 10
     batch_size = 10
     input_shape = (128, 128, 3)
 
@@ -145,6 +146,9 @@ def main():
     Y = Y.astype('float32')
     X /= 255
     Y /= 255
+
+    # X = X[0:1]
+    # Y = Y[0:1]
 
     if train_bool:
         train(X, Y, epochs, batch_size, input_shape)
