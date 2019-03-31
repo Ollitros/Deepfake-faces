@@ -1,6 +1,6 @@
 from keras.layers import *
 from keras_contrib.layers.normalization.instancenormalization import InstanceNormalization
-from custom_layers import PixelShuffler, Scale
+from network.custom_layers import PixelShuffler, Scale
 import keras.backend as K
 
 conv_init = 'he_normal'
