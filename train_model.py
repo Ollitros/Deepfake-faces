@@ -16,7 +16,7 @@ def train(X, Y, epochs, batch_size, input_shape):
 
     t0 = time.time()
     iters = X.shape[0] // batch_size
-    # model.load_weights()
+    model.load_weights()
     for i in range(epochs):
         print("######################################################\n"
               "GLOBAL EPOCH --------------------------------------- {i}".format(i=i),
@@ -25,7 +25,7 @@ def train(X, Y, epochs, batch_size, input_shape):
         # Train discriminators
         step = 0
         for iter in range(iters):
-            errDA, errDB = model.train_discriminators(data_A=X[step:step + batch_size], data_B=Y[step:step + batch_size])
+            errDA, errDB = model.train_discriminators(X=X[step:step + batch_size], Y=Y[step:step + batch_size])
             step = step + batch_size
         errDA_sum += errDA[0]
         errDB_sum += errDB[0]
@@ -33,7 +33,7 @@ def train(X, Y, epochs, batch_size, input_shape):
         # Train generators
         step = 0
         for iter in range(iters):
-            errGA, errGB = model.train_generators(data_A=X[step:step + batch_size], data_B=Y[step:step + batch_size])
+            errGA, errGB = model.train_generators(X=X[step:step + batch_size], Y=Y[step:step + batch_size])
             step = step + batch_size
         errGA_sum += errGA[0]
         errGB_sum += errGB[0]
@@ -51,25 +51,15 @@ def train(X, Y, epochs, batch_size, input_shape):
         # Makes predictions after each epoch and save into temp folder.
         prediction = model.encoder.predict(X[0:2])
         prediction = model.dst_decoder.predict(prediction)
-        cv.imwrite('data/models/temp/image{epoch}.jpg'.format(epoch=i + 0), prediction[0] * 255)
+        cv.imwrite('data/models/temp/image{epoch}.jpg'.format(epoch=i + 95000), prediction[0] * 255)
 
     model.save_weights()
-
-    # Test model
-    # prediction = encoder.predict(X[0:2])
-    # prediction = dst_decoder.predict(prediction)
-
-    # for i in range(1):
-    #    plt.subplot(231), plt.imshow(X[i], 'gray')
-    #    plt.subplot(232), plt.imshow(Y[i], 'gray')
-    #    plt.subplot(233), plt.imshow(prediction[i], 'gray')
-    #    plt.show()
 
 
 def main():
     # Parameters
-    epochs = 100
-    batch_size = 5
+    epochs = 5000
+    batch_size = 1
     input_shape = (64, 64, 3)
 
     X = np.load('data/X.npy')
@@ -80,8 +70,8 @@ def main():
     X /= 255
     Y /= 255
 
-    # X = X[0:53]
-    # Y = Y[0:53]
+    # X = X[0:1]
+    # Y = Y[0:1]
 
     train(X, Y, epochs, batch_size, input_shape)
 

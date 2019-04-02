@@ -1,8 +1,11 @@
 from keras.layers import Lambda, concatenate
 from tensorflow.contrib.distributions import Beta
-from keras_contrib.layers.normalization.instancenormalization import InstanceNormalization
 import keras.backend as K
-import tensorflow as tf
+
+""" 
+    Loss implementations 
+    Code has been politely stolen from https://github.com/shaoanlu/faceswap-GAN/blob/master/networks/losses.py
+"""
 
 
 def first_order(x, axis=1):

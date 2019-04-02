@@ -16,8 +16,8 @@ def conv_block(filters, strides=2):
     return block
 
 
-def d_layer(layer_input, filters, f_size=4):
-    """Discriminator layer"""
+# Discriminator block
+def dis_layer(layer_input, filters, f_size=4):
     x = Conv2D(filters, kernel_size=f_size, strides=2, padding='same')(layer_input)
     x = LeakyReLU(alpha=0.2)(x)
     x = InstanceNormalization()(x)
@@ -66,6 +66,7 @@ def self_attn_block(inp, nc, squeeze_factor=8):
     return out
 
 
+# Residual block
 def res_block(input_tensor, filters, w_l2=w_l2):
 
     x = input_tensor

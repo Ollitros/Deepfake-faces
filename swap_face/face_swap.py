@@ -126,7 +126,7 @@ def make_swap(src, dst, padding):
     img1Warped = np.copy(dst)
 
     # Set dlib parameters
-    predictor_path = 'data/face_features/shape_predictor_68_face_landmarks.dat'
+    predictor_path = '../data/face_features/shape_predictor_68_face_landmarks.dat'
     detector = dlib.get_frontal_face_detector()
     predictor = dlib.shape_predictor(predictor_path)
 
@@ -140,7 +140,7 @@ def make_swap(src, dst, padding):
     shape = predictor(src, roi)
     # shape = src[y:y + h, x:x + w]
     shape = face_utils.shape_to_np(shape)
-    np.savetxt('data/src.txt', shape, fmt="%s")
+    np.savetxt('../data/src.txt', shape, fmt="%s")
 
     # detect face dst
     rects = detector(dst, 1)
@@ -153,11 +153,11 @@ def make_swap(src, dst, padding):
     shape = predictor(dst, roi)
     # shape = dst[y:y + h, x:x + w]
     shape = face_utils.shape_to_np(shape)
-    np.savetxt('data/dst.txt', shape, fmt="%s")
+    np.savetxt('../data/dst.txt', shape, fmt="%s")
 
     # Read array of corresponding points
-    points1 = readPoints('data/src.txt')
-    points2 = readPoints('data/dst.txt')
+    points1 = readPoints('../data/src.txt')
+    points2 = readPoints('../data/dst.txt')
 
     # Find convex hull
     hull1 = []
@@ -261,16 +261,16 @@ def main(path_to_frames, path_to_src_faces, path_to_faces_info, path_to_predicti
             # Incertion process
             swaped_face = cv2.resize(swaped_face, (info[2], info[3]))
             frame[info[1]: info[1] + info[3], info[0]: info[0] + info[2]] = swaped_face
-            cv2.imwrite('data/swapped_frames/swapped_frame{i}.jpg'.format(i=index), frame)
+            cv2.imwrite('../data/swapped_frames/swapped_frame{i}.jpg'.format(i=index), frame)
 
     print("Fisko: ", fiasko)
 
 
 if __name__ == '__main__':
-    path_to_frames = 'data/src/src_video_faces/frames/'
-    path_to_src_faces = 'data/src/src_video_faces/faces/face_images/'
-    path_to_src_faces_info = 'data/src/src_video_faces/faces/face_info/'
-    path_to_predictions = 'data/predictions/'
+    path_to_frames = '../data/src/src_video_faces/frames/'
+    path_to_src_faces = '../data/src/src_video_faces/faces/face_images/'
+    path_to_src_faces_info = '../data/src/src_video_faces/faces/face_info/'
+    path_to_predictions = '../data/predictions/'
 
     main(path_to_frames=path_to_frames, path_to_src_faces=path_to_src_faces,
          path_to_faces_info=path_to_src_faces_info, path_to_predictions=path_to_predictions)

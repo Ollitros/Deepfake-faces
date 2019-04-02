@@ -3,6 +3,8 @@ import keras.backend as K
 
 
 class PixelShuffler(Layer):
+    """ PixelShuffler layer for Keras
+          by t-ae: https://gist.github.com/t-ae/6e1016cc188104d123676ccef3264981 """
     def __init__(self, size=(2, 2), data_format=None, **kwargs):
         super(PixelShuffler, self).__init__(**kwargs)
         self.data_format = K.normalize_data_format(data_format)

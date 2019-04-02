@@ -16,3 +16,5 @@ There are all model files in **'data/models/'** folder.
 # Recommendations
 1) The **Deepfake-faces** pet-project works well only with videos where faces can be ease recognized. 
 2) This code works only with one face in video. **REMEMBER THIS**. 
+3) Batch_size should be not less then 4 and no more then 32.
+4) Amount of global epochs should be 10 000 - 15 000.

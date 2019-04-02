@@ -33,16 +33,16 @@ class GanModel:
 
         # Define variables
         self.distorted_src, self.fake_src, self.mask_src, self.path_src, self.path_mask_src, \
-        self.path_abgr_src, self.path_bgr_src = self.define_variables(netG=self.src_gen)
+        self.path_abgr_src, self.path_bgr_src = self.define_variables(generator=self.src_gen)
         self.distorted_dst, self.fake_dst, self.mask_dst, self.path_dst, self.path_mask_dst, \
-        self.path_abgr_dst, self.path_bgr_dst = self.define_variables(netG=self.dst_gen)
+        self.path_abgr_dst, self.path_bgr_dst = self.define_variables(generator=self.dst_gen)
 
         self.real_src = Input(shape=self.input_shape)
         self.real_dst = Input(shape=self.input_shape)
 
     def Generator(self, input_shape):
         """
-                Autoencoders function creates three models: encoder model (common for two decoders), src decoder (which
+                Generator function creates three models: encoder model (common for two decoders), src decoder (which
             decodes features from common encoder and tries to reconstruct source image), dst decoder (which decodes features
             from common encoder and tries to reconstruct destination image).
 
@@ -127,13 +127,9 @@ class GanModel:
 
         # Build and compile
         encoder = Model(inputs=encoder_inputs, outputs=encoder_output)
-        # encoder.compile(loss='mean_squared_error', optimizer='adam')
-
         src_decoder = Model(inputs=src_inputs, outputs=src_decoder_output)
-        # src_decoder.compile(loss='mean_squared_error', optimizer='adam')
-
         dst_decoder = Model(inputs=dst_inputs, outputs=dst_decoder_output)
-        # dst_decoder.compile(loss='mean_squared_error', optimizer='adam')
+
         print(encoder.summary())
         print(src_decoder.summary())
         print(dst_decoder.summary())
@@ -144,29 +140,28 @@ class GanModel:
 
         inputs = Input(shape=image_shape)
 
-        x = d_layer(inputs, 128)
-        x = d_layer(x, 256)
-        x = d_layer(x, 512)
+        x = dis_layer(inputs, 128)
+        x = dis_layer(x, 256)
+        x = dis_layer(x, 512)
         x = self_attn_block(x, 512)
 
         activ_map_size = image_shape[0] // 8
         while activ_map_size > 8:
-            x = d_layer(x, 256)
+            x = dis_layer(x, 256)
             x = self_attn_block(x, 256)
             activ_map_size = activ_map_size // 2
 
         out = Conv2D(1, kernel_size=3, padding="same")(x)
 
         discriminator = Model(inputs, out)
-        # discriminator.compile(loss='mse', optimizer='adam', metrics=['accuracy'])
         print(discriminator.summary())
 
         return discriminator
 
     @staticmethod
-    def define_variables(netG):
-        distorted_input = netG.inputs[0]
-        fake_output = netG.outputs[-1]
+    def define_variables(generator):
+        distorted_input = generator.inputs[0]
+        fake_output = generator.outputs[-1]
         alpha = Lambda(lambda x: x[:, :, :, :1])(fake_output)
         bgr = Lambda(lambda x: x[:, :, :, 1:])(fake_output)
 
@@ -179,48 +174,50 @@ class GanModel:
 
         return distorted_input, fake_output, alpha, fn_generate, fn_mask, fn_abgr, fn_bgr
 
-    def build_train_functions(self, loss_weights=None, **loss_config):
+    def build_train_functions(self):
 
         # Adversarial loss
-        loss_DA, loss_adv_GA = adversarial_loss(self.src_discriminator, self.real_src, self.fake_src, self.distorted_src)
-        loss_DB, loss_adv_GB = adversarial_loss(self.dst_discriminator, self.real_dst, self.fake_dst, self.distorted_dst)
-        loss_GA = loss_adv_GA
-        loss_GB = loss_adv_GB
+        loss_src_dis, loss_adv_src_gen = adversarial_loss(self.src_discriminator, self.real_src, self.fake_src, self.distorted_src)
+        loss_dst_dis, loss_adv_dst_gen = adversarial_loss(self.dst_discriminator, self.real_dst, self.fake_dst, self.distorted_dst)
+        loss_src_gen = loss_adv_src_gen
+        loss_dst_gen = loss_adv_dst_gen
+
         # Alpha mask loss
-        loss_GA += 1e-2 * K.mean(K.abs(self.mask_src))
-        loss_GB += 1e-2 * K.mean(K.abs(self.mask_dst))
+        loss_src_gen += 1e-2 * K.mean(K.abs(self.mask_src))
+        loss_dst_gen += 1e-2 * K.mean(K.abs(self.mask_dst))
+
         # Alpha mask total variation loss
-        loss_GA += 0.1 * K.mean(first_order(self.mask_src, axis=1))
-        loss_GA += 0.1 * K.mean(first_order(self.mask_src, axis=2))
-        loss_GB += 0.1 * K.mean(first_order(self.mask_dst, axis=1))
-        loss_GB += 0.1 * K.mean(first_order(self.mask_dst, axis=2))
+        loss_src_gen += 0.1 * K.mean(first_order(self.mask_src, axis=1))
+        loss_src_gen += 0.1 * K.mean(first_order(self.mask_src, axis=2))
+        loss_dst_gen += 0.1 * K.mean(first_order(self.mask_dst, axis=1))
+        loss_dst_gen += 0.1 * K.mean(first_order(self.mask_dst, axis=2))
+
         # L2 weight decay
         # https://github.com/keras-team/keras/issues/2662
         for loss_tensor in self.src_gen.losses:
-            loss_GA += loss_tensor
+            loss_src_gen += loss_tensor
         for loss_tensor in self.dst_gen.losses:
-            loss_GB += loss_tensor
+            loss_dst_gen += loss_tensor
         for loss_tensor in self.src_discriminator.losses:
-            loss_DA += loss_tensor
+            loss_src_dis += loss_tensor
         for loss_tensor in self.dst_discriminator.losses:
-            loss_DB += loss_tensor
-        weightsDA = self.src_discriminator.trainable_weights
-        weightsGA = self.src_gen.trainable_weights
-        weightsDB = self.dst_discriminator.trainable_weights
-        weightsGB = self.dst_gen.trainable_weights
+            loss_dst_dis += loss_tensor
+        weights_src_dis = self.src_discriminator.trainable_weights
+        weights_src_gen = self.src_gen.trainable_weights
+        weights_dst_dis = self.dst_discriminator.trainable_weights
+        weights_dst_gen = self.dst_gen.trainable_weights
 
         # Define training functions
-        # Adam(...).get_updates(...)
         lr_factor = 1
-        training_updates = Adam(lr=self.lrD * lr_factor, beta_1=0.5).get_updates(weightsDA, [], loss_DA)
-        self.netDA_train = K.function([self.distorted_src, self.real_src], [loss_DA], training_updates)
-        training_updates = Adam(lr=self.lrG * lr_factor, beta_1=0.5).get_updates(weightsGA, [], loss_GA)
-        self.netGA_train = K.function([self.distorted_src, self.real_src], [loss_GA, loss_adv_GA], training_updates)
+        training_updates = Adam(lr=self.lrD * lr_factor, beta_1=0.5).get_updates(weights_src_dis, [], loss_src_dis)
+        self.net_src_dis_train = K.function([self.distorted_src, self.real_src], [loss_src_dis], training_updates)
+        training_updates = Adam(lr=self.lrG * lr_factor, beta_1=0.5).get_updates(weights_src_gen, [], loss_src_gen)
+        self.net_src_gen_train = K.function([self.distorted_src, self.real_src], [loss_src_gen, loss_adv_src_gen], training_updates)
 
-        training_updates = Adam(lr=self.lrD * lr_factor, beta_1=0.5).get_updates(weightsDB, [], loss_DB)
-        self.netDB_train = K.function([self.distorted_dst, self.real_dst], [loss_DB], training_updates)
-        training_updates = Adam(lr=self.lrG * lr_factor, beta_1=0.5).get_updates(weightsGB, [], loss_GB)
-        self.netGB_train = K.function([self.distorted_dst, self.real_dst], [loss_GB, loss_adv_GB], training_updates)
+        training_updates = Adam(lr=self.lrD * lr_factor, beta_1=0.5).get_updates(weights_dst_dis, [], loss_dst_dis)
+        self.net_dst_dis_train = K.function([self.distorted_dst, self.real_dst], [loss_dst_dis], training_updates)
+        training_updates = Adam(lr=self.lrG * lr_factor, beta_1=0.5).get_updates(weights_dst_gen, [], loss_dst_gen)
+        self.net_dst_gen_train = K.function([self.distorted_dst, self.real_dst], [loss_dst_gen, loss_adv_dst_gen], training_updates)
 
     def load_weights(self, path="data/models"):
         self.encoder.load_weights("{path}/encoder.h5".format(path=path))
@@ -238,24 +235,24 @@ class GanModel:
         self.dst_discriminator.save_weights("{path}/netDB.h5".format(path=path))
         print("Model weights files have been saved to {path}.".format(path=path))
 
-    def train_generators(self, data_A, data_B):
+    def train_generators(self, X, Y):
 
-        errGA = self.netGA_train([data_A, data_A])
-        errGB = self.netGB_train([data_B, data_B])
+        err_src_gen = self.net_src_gen_train([X, X])
+        err_dst_gen = self.net_dst_gen_train([Y, Y])
 
-        return errGA, errGB
+        return err_src_gen, err_dst_gen
 
-    def train_discriminators(self, data_A, data_B):
+    def train_discriminators(self, X, Y):
 
-        errDA = self.netDA_train([data_A, data_A])
-        errDB = self.netDB_train([data_B, data_B])
+        err_src_dis = self.net_src_dis_train([X, X])
+        err_dst_dis = self.net_dst_dis_train([Y, Y])
 
-        return errDA, errDB
+        return err_src_dis, err_dst_dis
 
-    def transform_A2B(self, img):
+    def transform_src_to_dst(self, img):
         return self.path_abgr_dst([[img]])
 
-    def transform_B2A(self, img):
+    def transform_dst_to_src(self, img):
         return self.path_abgr_src([[img]])
 
 
