@@ -51,7 +51,7 @@ def train(X, Y, epochs, batch_size, input_shape):
         # Makes predictions after each epoch and save into temp folder.
         prediction = model.encoder.predict(X[0:2])
         prediction = model.dst_decoder.predict(prediction)
-        cv.imwrite('data/models/temp/image{epoch}.jpg'.format(epoch=i + 95000), prediction[0] * 255)
+        cv.imwrite('data/models/temp/image{epoch}.jpg'.format(epoch=i + 140000), prediction[0] * 255)
 
     model.save_weights()
 
@@ -70,8 +70,8 @@ def main():
     X /= 255
     Y /= 255
 
-    # X = X[0:1]
-    # Y = Y[0:1]
+    X = X[0:1]
+    Y = Y[0:1]
 
     train(X, Y, epochs, batch_size, input_shape)
 

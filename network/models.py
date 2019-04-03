@@ -167,10 +167,10 @@ class GanModel:
 
         masked_fake_output = alpha * bgr + (1 - alpha) * distorted_input
 
-        fn_generate = K.function([distorted_input], [masked_fake_output])
-        fn_mask = K.function([distorted_input], [concatenate([alpha, alpha, alpha])])
-        fn_abgr = K.function([distorted_input], [concatenate([alpha, bgr])])
-        fn_bgr = K.function([distorted_input], [bgr])
+        fn_generate = K.function([distorted_input], [masked_fake_output])   # Return almost like input
+        fn_mask = K.function([distorted_input], [concatenate([alpha, alpha, alpha])]) # Return black image
+        fn_abgr = K.function([distorted_input], [concatenate([alpha, bgr])]) # Return 4-channels maksed image
+        fn_bgr = K.function([distorted_input], [bgr])   # Return input + mask
 
         return distorted_input, fake_output, alpha, fn_generate, fn_mask, fn_abgr, fn_bgr
 
@@ -202,6 +202,7 @@ class GanModel:
             loss_src_dis += loss_tensor
         for loss_tensor in self.dst_discriminator.losses:
             loss_dst_dis += loss_tensor
+
         weights_src_dis = self.src_discriminator.trainable_weights
         weights_src_gen = self.src_gen.trainable_weights
         weights_dst_dis = self.dst_discriminator.trainable_weights
@@ -254,8 +255,6 @@ class GanModel:
 
     def transform_dst_to_src(self, img):
         return self.path_abgr_src([[img]])
-
-
 
 
 # ###################################################################################
