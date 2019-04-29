@@ -25,7 +25,12 @@ def train(X, Y, epochs, batch_size, input_shape):
         # Train discriminators
         step = 0
         for iter in range(iters):
-            errDA, errDB = model.train_discriminators(X=X[step:step + batch_size], Y=Y[step:step + batch_size])
+            src_fake = model.src_gen.predict(X[step: (step + batch_size)])
+            dst_fake = model.dst_gen.predict(Y[step: (step + batch_size)])
+            errDA, errDB = model.train_discriminators(src_fake=np.float32(src_fake)[:, :, :, :3],
+                                                      dst_fake=np.float32(dst_fake)[:, :, :, :3],
+                                                      X=X[step: (step + batch_size)],
+                                                      Y=Y[step:step + batch_size])
             step = step + batch_size
         errDA_sum += errDA[0]
         errDB_sum += errDB[0]
@@ -48,18 +53,21 @@ def train(X, Y, epochs, batch_size, input_shape):
             print("----------")
             display_iters = display_iters + 1
 
+        if i % 10 == 0:
+            model.save_weights()
+
         # Makes predictions after each epoch and save into temp folder.
         prediction = model.encoder.predict(X[0:2])
         prediction = model.dst_decoder.predict(prediction)
-        cv.imwrite('data/models/temp/image{epoch}.jpg'.format(epoch=i + 140000), prediction[0] * 255)
+        cv.imwrite('data/models/temp/image{epoch}.jpg'.format(epoch=i + 0), prediction[0] * 255)
 
     model.save_weights()
 
 
 def main():
     # Parameters
-    epochs = 5000
-    batch_size = 1
+    epochs = 100
+    batch_size = 5
     input_shape = (64, 64, 3)
 
     X = np.load('data/X.npy')
@@ -69,9 +77,6 @@ def main():
     Y = Y.astype('float32')
     X /= 255
     Y /= 255
-
-    X = X[0:1]
-    Y = Y[0:1]
 
     train(X, Y, epochs, batch_size, input_shape)
 

@@ -243,10 +243,10 @@ class GanModel:
 
         return err_src_gen, err_dst_gen
 
-    def train_discriminators(self, X, Y):
+    def train_discriminators(self, src_fake, dst_fake, X, Y):
 
-        err_src_dis = self.net_src_dis_train([X, X])
-        err_dst_dis = self.net_dst_dis_train([Y, Y])
+        err_src_dis = self.net_src_dis_train([src_fake, X])
+        err_dst_dis = self.net_dst_dis_train([dst_fake, Y])
 
         return err_src_dis, err_dst_dis
 
