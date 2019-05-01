@@ -49,14 +49,13 @@ def train(X, Y, epochs, batch_size, input_shape):
             display_iters = display_iters + 1
 
         if i % 10 == 0:
-            model.save_weights()
+            # Makes predictions after each epoch and save into temp folder.
+            prediction = model.encoder.predict(X[0:2])
+            prediction = model.dst_decoder.predict(prediction)
+            prediction = np.float32(prediction[0] * 255)[:, :, 1:4]
+            cv.imwrite('image{epoch}.jpg'.format(epoch=i + 0), prediction)
 
-        # Makes predictions after each epoch and save into temp folder.
-        prediction = model.encoder.predict(X[0:2])
-        prediction = model.dst_decoder.predict(prediction)
-        cv.imwrite('data/models/temp/image{epoch}.jpg'.format(epoch=i + 0), prediction[0] * 255)
-
-    model.save_weights()
+        model.save_weights()
 
 
 def main():
