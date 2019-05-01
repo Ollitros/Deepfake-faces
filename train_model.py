@@ -25,12 +25,7 @@ def train(X, Y, epochs, batch_size, input_shape):
         # Train discriminators
         step = 0
         for iter in range(iters):
-            src_fake = model.src_gen.predict(X[step: (step + batch_size)])
-            dst_fake = model.dst_gen.predict(Y[step: (step + batch_size)])
-            errDA, errDB = model.train_discriminators(src_fake=np.float32(src_fake)[:, :, :, :3],
-                                                      dst_fake=np.float32(dst_fake)[:, :, :, :3],
-                                                      X=X[step: (step + batch_size)],
-                                                      Y=Y[step:step + batch_size])
+            errDA, errDB = model.train_discriminators(X=X[step: (step + batch_size)], Y=Y[step:step + batch_size])
             step = step + batch_size
         errDA_sum += errDA[0]
         errDB_sum += errDB[0]
