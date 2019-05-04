@@ -17,7 +17,7 @@ def main():
         size = (width, height)
         img_array.append(img)
 
-    out = cv2.VideoWriter('../data/deep_fake_video/deep_fake.avi', cv2.VideoWriter_fourcc(*'DIVX'), 15, size)
+    out = cv2.VideoWriter('../data/deep_fake_video/deep_fake.avi', cv2.VideoWriter_fourcc(*'DIVX'), 24, size)
 
     for i in range(len(img_array)):
         out.write(img_array[i])
