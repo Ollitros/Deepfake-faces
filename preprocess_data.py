@@ -6,7 +6,7 @@ from preprocess_face.create_dataset import make_dataset
 def preprocess_data():
     # Parameters
     extract_from_video = True
-    samples = 10000
+    samples = 1000
     resolution = (256, 256)
 
     extract_faces(extract_from_video=extract_from_video, resolution=resolution)

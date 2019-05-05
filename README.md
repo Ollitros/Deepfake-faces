@@ -4,9 +4,9 @@ This is only **pet-project**.
 # How to use
 1) Put source video named **'data_src.mp4'** into **'data/src/src_video/'** folder.
 2) Put destination video named **'data_dst.mp4'** into **'data/dst/dst_video/'** folder.
-3) Use **preprocess_data.py** for extracting faces, metadata, frames and make data augmentation from **"data/src/src_video/data_src.mp4"** 
-folder into **"data/src/src_video_faces/faces/face_images/"** ,  **"data/src/src_video_faces/faces/face_info/"** and
-**"data/src/src_video_faces/frames/"** directories. 
+3) Use **preprocess_data.py** for extracting faces, metadata, frames and make data augmentation from **"data/training_data/src/src_video/data_src.mp4"** 
+folder into **"data/training_data/src/src_video_faces/faces/face_images/"** ,  **"data/training_data/src/src_video_faces/faces/face_info/"** and
+**"data/training_data/src/src_video_faces/frames/"** directories. 
 This module makes the same operation for dst folder.
 4) Train autoencoder from **train_autoencoder.py** module. **Epochs** and **batch_size** you can change inside **main** function.
 There are all model files in **'data/models/'** folder.

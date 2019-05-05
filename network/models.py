@@ -50,80 +50,170 @@ class GanModel:
             :return: model
         """
 
-        # #######################
-        # ## Make encoder
-        # #######################
+        encoder_inputs = src_inputs = dst_inputs = encoder_output = src_decoder_output = dst_decoder_output = None
 
-        encoder_inputs = Input(shape=input_shape)
-        x = Conv2D(64, kernel_size=5, use_bias=False, padding="same")(encoder_inputs)
-        x = conv_block(128)(x)
-        x = conv_block(256)(x)
-        x = self_attn_block(x, 256)
-        x = conv_block(512)(x)
-        x = self_attn_block(x, 512)
-        x = conv_block(1024)(x)
+        if self.input_shape[0] == input_shape[1] == 64:
 
-        activ_map_size = input_shape[0] // 16
-        while activ_map_size > 4:
+            # #######################
+            # ## Make encoder
+            # #######################
+
+            encoder_inputs = Input(shape=input_shape)
+            x = Conv2D(64, kernel_size=5, use_bias=False, padding="same")(encoder_inputs)
+            x = conv_block(128)(x)
+            x = conv_block(256)(x)
+            x = self_attn_block(x, 256)
+            x = conv_block(512)(x)
+            x = self_attn_block(x, 512)
             x = conv_block(1024)(x)
-            activ_map_size = activ_map_size // 2
 
-        x = Dense(1024)(Flatten()(x))
-        x = Dense(4 * 4 * 1024)(x)
-        x = Reshape((4, 4, 1024))(x)
-        encoder_output = upscale(512)(x)
+            activ_map_size = input_shape[0] // 16
+            while activ_map_size > 4:
+                x = conv_block(1024)(x)
+                activ_map_size = activ_map_size // 2
 
-        # # #######################
-        # # ## Make src_decoder
-        # # #######################
+            x = Dense(1024)(Flatten()(x))
+            x = Dense(4 * 4 * 1024)(x)
+            x = Reshape((4, 4, 1024))(x)
+            encoder_output = upscale(512)(x)
 
-        src_inputs = Input(shape=(8, 8, 512))
-        x = upscale(256)(src_inputs)
-        x = upscale(128)(x)
-        x = self_attn_block(x, 128)
-        x = upscale(64)(x)
-        x = res_block(x, 64)
-        x = self_attn_block(x, 64)
+            # # #######################
+            # # ## Make src_decoder
+            # # #######################
 
-        outputs = []
-        activ_map_size = input_shape[0] * 8
-        while activ_map_size < 128:
-            outputs.append(Conv2D(3, kernel_size=5, padding='same', activation="tanh")(x))
+            src_inputs = Input(shape=(8, 8, 512))
+            x = upscale(256)(src_inputs)
+            x = upscale(128)(x)
+            x = self_attn_block(x, 128)
             x = upscale(64)(x)
-            x = conv_block(64, strides=1)(x)
-            activ_map_size *= 2
+            x = res_block(x, 64)
+            x = self_attn_block(x, 64)
 
-        alpha = Conv2D(1, kernel_size=5, padding='same', activation="sigmoid")(x)
-        bgr = Conv2D(3, kernel_size=5, padding='same', activation="tanh")(x)
-        out = concatenate([alpha, bgr])
-        outputs.append(out)
-        src_decoder_output = outputs
+            outputs = []
+            activ_map_size = input_shape[0] * 8
+            while activ_map_size < 128:
+                outputs.append(Conv2D(3, kernel_size=5, padding='same', activation="tanh")(x))
+                x = upscale(64)(x)
+                x = conv_block(64, strides=1)(x)
+                activ_map_size *= 2
 
-        # # #######################
-        # # ## Make dst_decoder
-        # # #######################
+            alpha = Conv2D(1, kernel_size=5, padding='same', activation="sigmoid")(x)
+            bgr = Conv2D(3, kernel_size=5, padding='same', activation="tanh")(x)
+            out = concatenate([alpha, bgr])
+            outputs.append(out)
+            src_decoder_output = outputs
 
-        dst_inputs = Input(shape=(8, 8, 512))
-        x = upscale(256)(dst_inputs)
-        x = upscale(128)(x)
-        x = self_attn_block(x, 128)
-        x = upscale(64)(x)
-        x = res_block(x, 64)
-        x = self_attn_block(x, 64)
+            # # #######################
+            # # ## Make dst_decoder
+            # # #######################
 
-        outputs = []
-        activ_map_size = input_shape[0] * 8
-        while activ_map_size < 128:
-            outputs.append(Conv2D(3, kernel_size=5, padding='same', activation="tanh")(x))
+            dst_inputs = Input(shape=(8, 8, 512))
+            x = upscale(256)(dst_inputs)
+            x = upscale(128)(x)
+            x = self_attn_block(x, 128)
             x = upscale(64)(x)
-            x = conv_block(64, strides=1)(x)
-            activ_map_size *= 2
+            x = res_block(x, 64)
+            x = self_attn_block(x, 64)
 
-        alpha = Conv2D(1, kernel_size=5, padding='same', activation="sigmoid")(x)
-        bgr = Conv2D(3, kernel_size=5, padding='same', activation="tanh")(x)
-        out = concatenate([alpha, bgr])
-        outputs.append(out)
-        dst_decoder_output = outputs
+            outputs = []
+            activ_map_size = input_shape[0] * 8
+            while activ_map_size < 128:
+                outputs.append(Conv2D(3, kernel_size=5, padding='same', activation="tanh")(x))
+                x = upscale(64)(x)
+                x = conv_block(64, strides=1)(x)
+                activ_map_size *= 2
+
+            alpha = Conv2D(1, kernel_size=5, padding='same', activation="sigmoid")(x)
+            bgr = Conv2D(3, kernel_size=5, padding='same', activation="tanh")(x)
+            out = concatenate([alpha, bgr])
+            outputs.append(out)
+            dst_decoder_output = outputs
+
+        if self.input_shape[0] == input_shape[1] == 256:
+
+            # #######################
+            # ## Make encoder
+            # #######################
+
+            encoder_inputs = Input(shape=input_shape)
+            x = Conv2D(64, kernel_size=5, use_bias=False, padding="same")(encoder_inputs)
+            x = conv_block(128)(x)
+            x = conv_block(256)(x)
+            x = self_attn_block(x, 256)
+            x = conv_block(256)(x)
+            x = self_attn_block(x, 256)
+            x = conv_block(256)(x)
+            x = conv_block(512)(x)
+            x = self_attn_block(x, 512)
+            x = conv_block(1024)(x)
+
+            activ_map_size = input_shape[0] // 64
+            while activ_map_size > 4:
+                x = conv_block(1024)(x)
+                activ_map_size = activ_map_size // 2
+
+            x = Dense(1024)(Flatten()(x))
+            x = Dense(4 * 4 * 1024)(x)
+            x = Reshape((4, 4, 1024))(x)
+            encoder_output = upscale(512)(x)
+
+            # # #######################
+            # # ## Make src_decoder
+            # # #######################
+
+            src_inputs = Input(shape=(8, 8, 512))
+            x = upscale(256)(src_inputs)
+            x = upscale(128)(x)
+            x = self_attn_block(x, 128)
+            x = upscale(64)(x)
+            x = res_block(x, 64)
+            x = self_attn_block(x, 64)
+            x = upscale(64)(x)
+            x = self_attn_block(x, 64)
+            x = upscale(64)(x)
+
+            outputs = []
+            activ_map_size = input_shape[0] * 8
+            while activ_map_size < 128:
+                outputs.append(Conv2D(3, kernel_size=5, padding='same', activation="tanh")(x))
+                x = upscale(64)(x)
+                x = conv_block(64, strides=1)(x)
+                activ_map_size *= 2
+
+            alpha = Conv2D(1, kernel_size=5, padding='same', activation="sigmoid")(x)
+            bgr = Conv2D(3, kernel_size=5, padding='same', activation="tanh")(x)
+            out = concatenate([alpha, bgr])
+            outputs.append(out)
+            src_decoder_output = outputs
+
+            # # #######################
+            # # ## Make dst_decoder
+            # # #######################
+
+            dst_inputs = Input(shape=(8, 8, 512))
+            x = upscale(256)(dst_inputs)
+            x = upscale(128)(x)
+            x = self_attn_block(x, 128)
+            x = upscale(64)(x)
+            x = res_block(x, 64)
+            x = self_attn_block(x, 64)
+            x = upscale(64)(x)
+            x = self_attn_block(x, 64)
+            x = upscale(64)(x)
+
+            outputs = []
+            activ_map_size = input_shape[0] * 8
+            while activ_map_size < 128:
+                outputs.append(Conv2D(3, kernel_size=5, padding='same', activation="tanh")(x))
+                x = upscale(64)(x)
+                x = conv_block(64, strides=1)(x)
+                activ_map_size *= 2
+
+            alpha = Conv2D(1, kernel_size=5, padding='same', activation="sigmoid")(x)
+            bgr = Conv2D(3, kernel_size=5, padding='same', activation="tanh")(x)
+            out = concatenate([alpha, bgr])
+            outputs.append(out)
+            dst_decoder_output = outputs
 
         # Build and compile
         encoder = Model(inputs=encoder_inputs, outputs=encoder_output)
@@ -229,11 +319,11 @@ class GanModel:
         print("Model weights files are successfully loaded.")
 
     def save_weights(self, path="data/models"):
-        self.encoder.save_weights("{path}/encoder.h5".format(path=path))
-        self.src_decoder.save_weights("{path}/decoder_A.h5".format(path=path))
-        self.dst_decoder.save_weights("{path}/decoder_B.h5".format(path=path))
-        self.src_discriminator.save_weights("{path}/netDA.h5".format(path=path))
-        self.dst_discriminator.save_weights("{path}/netDB.h5".format(path=path))
+        self.encoder.save("{path}/encoder.h5".format(path=path))
+        self.src_decoder.save("{path}/decoder_A.h5".format(path=path))
+        self.dst_decoder.save("{path}/decoder_B.h5".format(path=path))
+        self.src_discriminator.save("{path}/netDA.h5".format(path=path))
+        self.dst_discriminator.save("{path}/netDB.h5".format(path=path))
         print("Model weights files have been saved to {path}.".format(path=path))
 
     def train_generators(self, X, Y):

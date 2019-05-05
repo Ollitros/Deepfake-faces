@@ -7,7 +7,7 @@ from network.models import GanModel
 def train(X, Y, epochs, batch_size, input_shape):
 
     # Return encoder, two decoders, and two discriminators
-    model = GanModel(input_shape=input_shape, image_shape=(64, 64, 6))
+    model = GanModel(input_shape=input_shape, image_shape=(input_shape[0], input_shape[1], 6))
     model.build_train_functions()
 
     errGA_sum = errGB_sum = errDA_sum = errDB_sum = 0
@@ -15,7 +15,7 @@ def train(X, Y, epochs, batch_size, input_shape):
 
     t0 = time.time()
     iters = X.shape[0] // batch_size
-    model.load_weights()
+    # model.load_weights()
     for i in range(epochs):
         print("######################################################\n"
               "GLOBAL EPOCH --------------------------------------- {i}".format(i=i),
@@ -59,9 +59,9 @@ def train(X, Y, epochs, batch_size, input_shape):
 
 def main():
     # Parameters
-    epochs = 100
-    batch_size = 5
-    input_shape = (64, 64, 3)
+    epochs = 1
+    batch_size = 1
+    input_shape = (256, 256, 3)
 
     X = np.load('data/training_data/X.npy')
     Y = np.load('data/training_data/Y.npy')
