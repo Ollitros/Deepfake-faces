@@ -53,10 +53,10 @@ def make_dataset(resolution):
     Y = []
 
     # Count images from src folder
-    _, _, src_files = next(os.walk("../data/src/src_video_faces/faces/face_images"))
+    _, _, src_files = next(os.walk("data/training_data/src/src_video_faces/faces/face_images"))
     src_file_count = len(src_files)
     # Count images from dst folder
-    _, _, dst_files = next(os.walk("../data/dst/dst_video_faces/faces/face_images"))
+    _, _, dst_files = next(os.walk("data/training_data/dst/dst_video_faces/faces/face_images"))
     dst_file_count = len(dst_files)
     file_count = None
     if dst_file_count > src_file_count:
@@ -67,30 +67,30 @@ def make_dataset(resolution):
         file_count = src_file_count = dst_file_count
     # Creating train dataset
     for i in range(file_count):
-        image = cv.imread('../data/src/src_video_faces/faces/face_images/{img}'.format(img=src_files[i]))
+        image = cv.imread('data/training_data/src/src_video_faces/faces/face_images/{img}'.format(img=src_files[i]))
         image = cv.resize(image, resolution)
-        cv.imwrite('../data/src/src_resized/src{i}.jpg'.format(i=i), image)
+        cv.imwrite('data/training_data/src/src_resized/src{i}.jpg'.format(i=i), image)
         X.append(image)
     X = np.asarray(X)
 
     for i in range(file_count):
-        image = cv.imread('../data/dst/dst_video_faces/faces/face_images/{img}'.format(img=dst_files[i]))
+        image = cv.imread('data/training_data/dst/dst_video_faces/faces/face_images/{img}'.format(img=dst_files[i]))
         image = cv.resize(image, resolution)
-        cv.imwrite('../data/dst/dst_resized/dst{i}.jpg'.format(i=i), image)
+        cv.imwrite('data/training_data/dst/dst_resized/dst{i}.jpg'.format(i=i), image)
         Y.append(image)
     Y = np.asarray(Y)
 
-    np.save('../data/training_data/X_original.npy', X)
-    np.save('../data/training_data/Y_original.npy', Y)
+    np.save('data/training_data/X_original.npy', X)
+    np.save('data/training_data/Y_original.npy', Y)
 
 
 def extract_faces(extract_from_video, resolution):
 
     if extract_from_video:
-        video_extract(path_from='../data/src/src_video/data_src.mp4', path_to='../data/src/src_video_faces/faces/face_images/src_face{step}.jpg',
-                      path_to_info='../data/src/src_video_faces/faces/face_info/src_info{step}.txt', path_to_frame='../data/src/src_video_faces/frames/src_frame{step}.jpg')
-        video_extract(path_from='../data/dst/dst_video/data_dst.mp4', path_to='../data/dst/dst_video_faces/faces/face_images/dst_face{step}.jpg',
-                      path_to_info='../data/dst/dst_video_faces/faces/face_info/dst_info{step}.txt', path_to_frame='../data/dst/dst_video_faces/frames/dst_frame{step}.jpg')
+        video_extract(path_from='data/training_data/src/src_video/data_src.mp4', path_to='data/training_data/src/src_video_faces/faces/face_images/src_face{step}.jpg',
+                      path_to_info='data/training_data/src/src_video_faces/faces/face_info/src_info{step}.txt', path_to_frame='data/training_data/src/src_video_faces/frames/src_frame{step}.jpg')
+        video_extract(path_from='data/training_data/dst/dst_video/data_dst.mp4', path_to='data/training_data/dst/dst_video_faces/faces/face_images/dst_face{step}.jpg',
+                      path_to_info='data/training_data/dst/dst_video_faces/faces/face_info/dst_info{step}.txt', path_to_frame='data/training_data/dst/dst_video_faces/frames/dst_frame{step}.jpg')
 
         make_dataset(resolution=resolution)
     else:

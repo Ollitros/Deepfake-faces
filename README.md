@@ -4,7 +4,7 @@ This is only **pet-project**.
 # How to use
 1) Put source video named **'data_src.mp4'** into **'data/src/src_video/'** folder.
 2) Put destination video named **'data_dst.mp4'** into **'data/dst/dst_video/'** folder.
-3) Use **face_extractor.py** for extracting faces, metadata and frames from **"data/src/src_video/data_src.mp4"** 
+3) Use **preprocess_data.py** for extracting faces, metadata, frames and make data augmentation from **"data/src/src_video/data_src.mp4"** 
 folder into **"data/src/src_video_faces/faces/face_images/"** ,  **"data/src/src_video_faces/faces/face_info/"** and
 **"data/src/src_video_faces/frames/"** directories. 
 This module makes the same operation for dst folder.

@@ -63,8 +63,8 @@ def main():
     batch_size = 5
     input_shape = (64, 64, 3)
 
-    X = np.load('data/X.npy')
-    Y = np.load('data/Y.npy')
+    X = np.load('data/training_data/X.npy')
+    Y = np.load('data/training_data/Y.npy')
 
     X = X.astype('float32')
     Y = Y.astype('float32')
