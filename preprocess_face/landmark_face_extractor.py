@@ -252,7 +252,7 @@ def make_extraction(path_from, path_to, points_path, path_walk):
         print("TOTAL - ", file_count, "||| COMPUTED - ", i)
 
 
-def main(extract_from_video):
+def extract_video(extract_from_video):
 
     if extract_from_video:
         make_extraction(path_from='data/src/src_video_faces/faces/face_images/src_face{img}.jpg', path_to='data/src/src_landmark/faces/src_face{step}.jpg',
@@ -267,4 +267,4 @@ if __name__ == "__main__":
 
     extract_from_video = True
 
-    main(extract_from_video)
+    extract_video(extract_from_video)
