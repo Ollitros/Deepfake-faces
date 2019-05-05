@@ -48,7 +48,7 @@ def video_extract(path_from, path_to, path_to_info, path_to_frame):
     cv.destroyAllWindows()
 
 
-def make_dataset():
+def make_dataset(resolution):
     X = []
     Y = []
 
@@ -68,14 +68,14 @@ def make_dataset():
     # Creating train dataset
     for i in range(file_count):
         image = cv.imread('../data/src/src_video_faces/faces/face_images/{img}'.format(img=src_files[i]))
-        image = cv.resize(image, (64, 64))
+        image = cv.resize(image, resolution)
         cv.imwrite('../data/src/src_resized/src{i}.jpg'.format(i=i), image)
         X.append(image)
     X = np.asarray(X)
 
     for i in range(file_count):
         image = cv.imread('../data/dst/dst_video_faces/faces/face_images/{img}'.format(img=dst_files[i]))
-        image = cv.resize(image, (64, 64))
+        image = cv.resize(image, resolution)
         cv.imwrite('../data/dst/dst_resized/dst{i}.jpg'.format(i=i), image)
         Y.append(image)
     Y = np.asarray(Y)
@@ -84,7 +84,7 @@ def make_dataset():
     np.save('../data/training_data/Y_original.npy', Y)
 
 
-def extract_faces(extract_from_video):
+def extract_faces(extract_from_video, resolution):
 
     if extract_from_video:
         video_extract(path_from='../data/src/src_video/data_src.mp4', path_to='../data/src/src_video_faces/faces/face_images/src_face{step}.jpg',
@@ -92,7 +92,7 @@ def extract_faces(extract_from_video):
         video_extract(path_from='../data/dst/dst_video/data_dst.mp4', path_to='../data/dst/dst_video_faces/faces/face_images/dst_face{step}.jpg',
                       path_to_info='../data/dst/dst_video_faces/faces/face_info/dst_info{step}.txt', path_to_frame='../data/dst/dst_video_faces/frames/dst_frame{step}.jpg')
 
-        make_dataset()
+        make_dataset(resolution=resolution)
     else:
         print("It`s error, bro.")
 
@@ -100,8 +100,9 @@ def extract_faces(extract_from_video):
 if __name__ == "__main__":
 
     extract_from_video = True
+    resolution = (64, 64)
 
-    extract_faces(extract_from_video)
+    extract_faces(extract_from_video, resolution=resolution)
 
 
 
