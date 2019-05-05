@@ -4,7 +4,7 @@ import time
 from network.models import GanModel
 
 
-def train(X, Y, epochs, batch_size, input_shape):
+def train(X, Y, epochs, batch_size, input_shape, splitted):
 
     # Return encoder, two decoders, and two discriminators
     model = GanModel(input_shape=input_shape, image_shape=(input_shape[0], input_shape[1], 6))
@@ -14,32 +14,36 @@ def train(X, Y, epochs, batch_size, input_shape):
     display_iters = 1
 
     t0 = time.time()
-    iters = X.shape[0] // batch_size
     # model.load_weights()
-    for i in range(epochs):
-        print("######################################################\n"
-              "GLOBAL EPOCH --------------------------------------- {i}".format(i=i),
-              "\n######################################################\n")
+    if splitted is not None:
 
-        # Train discriminators
-        step = 0
-        for iter in range(iters):
-            errDA, errDB = model.train_discriminators(X=X[step: (step + batch_size)], Y=Y[step:step + batch_size])
-            step = step + batch_size
-        errDA_sum += errDA[0]
-        errDB_sum += errDB[0]
+        for i in range(epochs):
 
-        # Train generators
-        step = 0
-        for iter in range(iters):
-            errGA, errGB = model.train_generators(X=X[step:step + batch_size], Y=Y[step:step + batch_size])
-            step = step + batch_size
-        errGA_sum += errGA[0]
-        errGB_sum += errGB[0]
+            for index in range(splitted):
+                X = np.load('data/training_data/splitted/train{index}X.npy'.format(index=(index + 1)*1000))
+                Y = np.load('data/training_data/splitted/train{index}Y.npy'.format(index=(index + 1)*1000))
+                X = X.astype('float32')
+                Y = Y.astype('float32')
+                X /= 255
+                Y /= 255
 
-        # Visualization
-        if i % display_iters == 0:
+                iters = X.shape[0] // batch_size
+                # Train discriminators
+                step = 0
+                for iter in range(iters):
+                    errDA, errDB = model.train_discriminators(X=X[step: (step + batch_size)], Y=Y[step:step + batch_size])
+                    step = step + batch_size
+                errDA_sum += errDA[0]
+                errDB_sum += errDB[0]
+                # Train generators
+                step = 0
+                for iter in range(iters):
+                    errGA, errGB = model.train_generators(X=X[step:step + batch_size], Y=Y[step:step + batch_size])
+                    step = step + batch_size
+                errGA_sum += errGA[0]
+                errGB_sum += errGB[0]
 
+            # Visualization
             print("----------")
             print('[iter %d] Loss_DA: %f Loss_DB: %f Loss_GA: %f Loss_GB: %f time: %f'
                   % (i, errDA_sum / display_iters, errDB_sum / display_iters,
@@ -47,14 +51,51 @@ def train(X, Y, epochs, batch_size, input_shape):
             print("----------")
             display_iters = display_iters + 1
 
-        if i % 10 == 0:
             # Makes predictions after each epoch and save into temp folder.
             prediction = model.encoder.predict(X[0:2])
             prediction = model.dst_decoder.predict(prediction)
             prediction = np.float32(prediction[0] * 255)[:, :, 1:4]
             cv.imwrite('image{epoch}.jpg'.format(epoch=i + 0), prediction)
+            model.save_weights()
 
-        model.save_weights()
+    else:
+        iters = X.shape[0] // batch_size
+        for i in range(epochs):
+
+            # Train discriminators
+            step = 0
+            for iter in range(iters):
+                errDA, errDB = model.train_discriminators(X=X[step: (step + batch_size)], Y=Y[step:step + batch_size])
+                step = step + batch_size
+            errDA_sum += errDA[0]
+            errDB_sum += errDB[0]
+
+            # Train generators
+            step = 0
+            for iter in range(iters):
+                errGA, errGB = model.train_generators(X=X[step:step + batch_size], Y=Y[step:step + batch_size])
+                step = step + batch_size
+            errGA_sum += errGA[0]
+            errGB_sum += errGB[0]
+
+            # Visualization
+            if i % display_iters == 0:
+
+                print("----------")
+                print('[iter %d] Loss_DA: %f Loss_DB: %f Loss_GA: %f Loss_GB: %f time: %f'
+                      % (i, errDA_sum / display_iters, errDB_sum / display_iters,
+                         errGA_sum / display_iters, errGB_sum / display_iters, time.time() - t0))
+                print("----------")
+                display_iters = display_iters + 1
+
+            if i % 10 == 0:
+                # Makes predictions after each epoch and save into temp folder.
+                prediction = model.encoder.predict(X[0:2])
+                prediction = model.dst_decoder.predict(prediction)
+                prediction = np.float32(prediction[0] * 255)[:, :, 1:4]
+                cv.imwrite('image{epoch}.jpg'.format(epoch=i + 0), prediction)
+
+            model.save_weights()
 
 
 def main():
@@ -62,16 +103,22 @@ def main():
     epochs = 1
     batch_size = 1
     input_shape = (256, 256, 3)
+    splitted = 10
 
-    X = np.load('data/training_data/X.npy')
-    Y = np.load('data/training_data/Y.npy')
+    if splitted is not None:
 
-    X = X.astype('float32')
-    Y = Y.astype('float32')
-    X /= 255
-    Y /= 255
+        train(X=None, Y=None, epochs=epochs, batch_size=batch_size, input_shape=input_shape, splitted=splitted)
 
-    train(X, Y, epochs, batch_size, input_shape)
+    else:
+        X = np.load('data/training_data/X.npy')
+        Y = np.load('data/training_data/Y.npy')
+
+        X = X.astype('float32')
+        Y = Y.astype('float32')
+        X /= 255
+        Y /= 255
+
+        train(X, Y, epochs, batch_size, input_shape, splitted)
 
 
 if __name__ == "__main__":
