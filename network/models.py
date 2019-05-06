@@ -129,7 +129,7 @@ class GanModel:
             outputs.append(out)
             dst_decoder_output = outputs
 
-        if self.input_shape[0] == input_shape[1] == 256:
+        if self.input_shape[0] == input_shape[1] == 128:
 
             # #######################
             # ## Make encoder
@@ -142,12 +142,11 @@ class GanModel:
             x = self_attn_block(x, 256)
             x = conv_block(256)(x)
             x = self_attn_block(x, 256)
-            x = conv_block(256)(x)
             x = conv_block(512)(x)
             x = self_attn_block(x, 512)
             x = conv_block(1024)(x)
 
-            activ_map_size = input_shape[0] // 64
+            activ_map_size = input_shape[0] // 32
             while activ_map_size > 4:
                 x = conv_block(1024)(x)
                 activ_map_size = activ_map_size // 2
@@ -170,7 +169,6 @@ class GanModel:
             x = self_attn_block(x, 64)
             x = upscale(64)(x)
             x = self_attn_block(x, 64)
-            x = upscale(64)(x)
 
             outputs = []
             activ_map_size = input_shape[0] * 8
@@ -199,7 +197,6 @@ class GanModel:
             x = self_attn_block(x, 64)
             x = upscale(64)(x)
             x = self_attn_block(x, 64)
-            x = upscale(64)(x)
 
             outputs = []
             activ_map_size = input_shape[0] * 8

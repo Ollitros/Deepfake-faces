@@ -20,8 +20,8 @@ def train(X, Y, epochs, batch_size, input_shape, splitted):
         for i in range(epochs):
 
             for index in range(splitted):
-                X = np.load('data/training_data/splitted/train{index}X.npy'.format(index=(index + 1)*1000))
-                Y = np.load('data/training_data/splitted/train{index}Y.npy'.format(index=(index + 1)*1000))
+                X = np.load('data/training_data/splitted/trainX{index}.npy'.format(index=(index + 1)*1000))
+                Y = np.load('data/training_data/splitted/trainY{index}.npy'.format(index=(index + 1)*1000))
                 X = X.astype('float32')
                 Y = Y.astype('float32')
                 X /= 255
@@ -67,6 +67,8 @@ def train(X, Y, epochs, batch_size, input_shape, splitted):
             for iter in range(iters):
                 errDA, errDB = model.train_discriminators(X=X[step: (step + batch_size)], Y=Y[step:step + batch_size])
                 step = step + batch_size
+                if iter % 100 == 0:
+                    print("Discriminator interior step", iter)
             errDA_sum += errDA[0]
             errDB_sum += errDB[0]
 
@@ -75,6 +77,8 @@ def train(X, Y, epochs, batch_size, input_shape, splitted):
             for iter in range(iters):
                 errGA, errGB = model.train_generators(X=X[step:step + batch_size], Y=Y[step:step + batch_size])
                 step = step + batch_size
+                if iter % 100 == 0:
+                    print("Generator interior step", iter)
             errGA_sum += errGA[0]
             errGB_sum += errGB[0]
 
@@ -88,7 +92,7 @@ def train(X, Y, epochs, batch_size, input_shape, splitted):
                 print("----------")
                 display_iters = display_iters + 1
 
-            if i % 10 == 0:
+            if i % 1 == 0:
                 # Makes predictions after each epoch and save into temp folder.
                 prediction = model.encoder.predict(X[0:2])
                 prediction = model.dst_decoder.predict(prediction)
@@ -100,18 +104,18 @@ def train(X, Y, epochs, batch_size, input_shape, splitted):
 
 def main():
     # Parameters
-    epochs = 1
+    epochs = 2
     batch_size = 1
-    input_shape = (256, 256, 3)
-    splitted = 10
+    input_shape = (128, 128, 3)
+    splitted = None  # 'Splitted' parameter use when dataset is huge to load in memory and you need to split it
 
     if splitted is not None:
 
         train(X=None, Y=None, epochs=epochs, batch_size=batch_size, input_shape=input_shape, splitted=splitted)
 
     else:
-        X = np.load('data/training_data/X.npy')
-        Y = np.load('data/training_data/Y.npy')
+        X = np.load('data/training_data/trainX.npy')
+        Y = np.load('data/training_data/trainY.npy')
 
         X = X.astype('float32')
         Y = Y.astype('float32')

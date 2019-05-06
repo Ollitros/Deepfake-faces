@@ -48,43 +48,7 @@ def video_extract(path_from, path_to, path_to_info, path_to_frame):
     cv.destroyAllWindows()
 
 
-def make_dataset(resolution):
-    X = []
-    Y = []
-
-    # Count images from src folder
-    _, _, src_files = next(os.walk("data/training_data/src/src_video_faces/faces/face_images"))
-    src_file_count = len(src_files)
-    # Count images from dst folder
-    _, _, dst_files = next(os.walk("data/training_data/dst/dst_video_faces/faces/face_images"))
-    dst_file_count = len(dst_files)
-    file_count = None
-    if dst_file_count > src_file_count:
-        file_count = src_file_count
-    elif dst_file_count < src_file_count:
-        file_count = dst_file_count
-    else:
-        file_count = src_file_count = dst_file_count
-    # Creating train dataset
-    for i in range(file_count):
-        image = cv.imread('data/training_data/src/src_video_faces/faces/face_images/{img}'.format(img=src_files[i]))
-        image = cv.resize(image, resolution)
-        cv.imwrite('data/training_data/src/src_resized/src{i}.jpg'.format(i=i), image)
-        X.append(image)
-    X = np.asarray(X)
-
-    for i in range(file_count):
-        image = cv.imread('data/training_data/dst/dst_video_faces/faces/face_images/{img}'.format(img=dst_files[i]))
-        image = cv.resize(image, resolution)
-        cv.imwrite('data/training_data/dst/dst_resized/dst{i}.jpg'.format(i=i), image)
-        Y.append(image)
-    Y = np.asarray(Y)
-
-    np.save('data/training_data/X_original.npy', X)
-    np.save('data/training_data/Y_original.npy', Y)
-
-
-def extract_faces(extract_from_video, resolution):
+def extract_faces(extract_from_video):
 
     if extract_from_video:
         video_extract(path_from='data/training_data/src/src_video/data_src.mp4', path_to='data/training_data/src/src_video_faces/faces/face_images/src_face{step}.jpg',
@@ -92,7 +56,6 @@ def extract_faces(extract_from_video, resolution):
         video_extract(path_from='data/training_data/dst/dst_video/data_dst.mp4', path_to='data/training_data/dst/dst_video_faces/faces/face_images/dst_face{step}.jpg',
                       path_to_info='data/training_data/dst/dst_video_faces/faces/face_info/dst_info{step}.txt', path_to_frame='data/training_data/dst/dst_video_faces/frames/dst_frame{step}.jpg')
 
-        make_dataset(resolution=resolution)
     else:
         print("It`s error, bro.")
 
@@ -100,9 +63,8 @@ def extract_faces(extract_from_video, resolution):
 if __name__ == "__main__":
 
     extract_from_video = True
-    resolution = (64, 64)
 
-    extract_faces(extract_from_video, resolution=resolution)
+    extract_faces(extract_from_video)
 
 
 

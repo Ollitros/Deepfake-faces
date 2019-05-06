@@ -4,7 +4,7 @@ import os
 
 def make_augmentation(samples):
     # Make source augmentation
-    folder = 'data/training_data/src/src_resized/output'
+    folder = 'data/training_data/src/src_video_faces/faces/face_images/output'
     for the_file in os.listdir(folder):
         file_path = os.path.join(folder, the_file)
         try:
@@ -13,7 +13,7 @@ def make_augmentation(samples):
         except Exception as e:
             print(e)
 
-    p = Augmentor.Pipeline('data/training_data/src/src_resized/')
+    p = Augmentor.Pipeline('data/training_data/src/src_video_faces/faces/face_images/')
     p.rotate(probability=0.5, max_left_rotation=10, max_right_rotation=10)
     p.rotate_random_90(probability=0.5)
     p.skew_corner(probability=0.5, magnitude=0.2)
@@ -23,7 +23,7 @@ def make_augmentation(samples):
     p.sample(samples)
 
     # Make destination augmentation
-    folder = 'data/training_data/dst/dst_resized/output'
+    folder = 'data/training_data/dst/dst_video_faces/faces/face_images/output'
     for the_file in os.listdir(folder):
         file_path = os.path.join(folder, the_file)
         try:
@@ -32,7 +32,7 @@ def make_augmentation(samples):
         except Exception as e:
             print(e)
 
-    p = Augmentor.Pipeline('data/training_data/dst/dst_resized/')
+    p = Augmentor.Pipeline('data/training_data/dst/dst_video_faces/faces/face_images/')
     p.rotate(probability=0.5, max_left_rotation=10, max_right_rotation=10)
     p.rotate_random_90(probability=0.5)
     p.skew_corner(probability=0.5, magnitude=0.2)
