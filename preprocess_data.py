@@ -10,9 +10,9 @@ def preprocess_data():
     resolution = (64, 64)
     splitted = None  # 'Splitted' parameter use when dataset to huge to load in memory and you need to split it
 
-    # extract_faces(extract_from_video=extract_from_video)
-    # create_eyes_mask(resolution=resolution)
-    # make_augmentation()
+    extract_faces(extract_from_video=extract_from_video)
+    create_eyes_mask(resolution=resolution)
+    make_augmentation()
     make_dataset(splitted=splitted, resolution=resolution)
 
 

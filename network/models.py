@@ -40,6 +40,9 @@ class GanModel:
         self.real_src = Input(shape=self.input_shape)
         self.real_dst = Input(shape=self.input_shape)
 
+        self.mask_eyes_src = Input(shape=self.input_shape)
+        self.mask_eyes_dst = Input(shape=self.input_shape)
+
     def Generator(self, input_shape):
         """
                 Generator function creates three models: encoder model (common for two decoders), src decoder (which
@@ -273,21 +276,21 @@ class GanModel:
         # Adversarial loss
         loss_src_dis, loss_adv_src_gen = adversarial_loss(self.src_discriminator, self.real_src, self.fake_src, self.distorted_src, weights=weights)
         loss_dst_dis, loss_adv_dst_gen = adversarial_loss(self.dst_discriminator, self.real_dst, self.fake_dst, self.distorted_dst, weights=weights)
-        loss_src_gen = loss_adv_src_gen
-        loss_dst_gen = loss_adv_dst_gen
 
         # Reconstruction loss
-        loss_recon_src_gen = reconstruction_loss(self.real_src, self.fake_src, self.src_gen.outputs,  weights=weights)
-        loss_recon_dst_gen = reconstruction_loss(self.real_dst, self.fake_dst, self.dst_gen.outputs,  weights=weights)
+        loss_recon_src_gen = reconstruction_loss(self.real_src, self.fake_src, self.mask_eyes_src, self.src_gen.outputs, weights=weights)
+        loss_recon_dst_gen = reconstruction_loss(self.real_dst, self.fake_dst, self.mask_eyes_dst, self.dst_gen.outputs, weights=weights)
 
         # Edge loss
-        loss_edge_GA = edge_loss(self.real_A, self.fake_A, self.mask_eyes_A, **loss_weights)
-        loss_edge_GB = edge_loss(self.real_B, self.fake_B, self.mask_eyes_B, **loss_weights)
+        loss_edge_src_gen = edge_loss(self.real_src, self.fake_src, self.mask_eyes_src, weights=weights)
+        loss_edge_dst_gen = edge_loss(self.real_dst, self.fake_dst, self.mask_eyes_dst, weights=weights)
 
+        # Perceptual loss
+        loss_pl_src_gen = perceptual_loss(self.real_src, self.fake_src, self.distorted_src, self.mask_eyes_src, self.vggface_feats, weights=weights)
+        loss_pl_dst_gen = perceptual_loss(self.real_dst, self.fake_dst, self.distorted_dst, self.mask_eyes_dst, self.vggface_feats, weights=weights)
 
-        # Alpha mask loss
-        loss_src_gen += 1e-2 * K.mean(K.abs(self.mask_src))
-        loss_dst_gen += 1e-2 * K.mean(K.abs(self.mask_dst))
+        loss_src_gen = loss_adv_src_gen + loss_recon_src_gen + loss_edge_src_gen + loss_pl_src_gen
+        loss_dst_gen = loss_adv_dst_gen + loss_recon_dst_gen + loss_edge_dst_gen + loss_pl_dst_gen
 
         # Alpha mask total variation loss
         loss_src_gen += 0.1 * K.mean(first_order(self.mask_src, axis=1))
@@ -316,12 +319,32 @@ class GanModel:
         training_updates = Adam(lr=self.lrD * lr_factor, beta_1=0.5).get_updates(weights_src_dis, [], loss_src_dis)
         self.net_src_dis_train = K.function([self.distorted_src, self.real_src], [loss_src_dis], training_updates)
         training_updates = Adam(lr=self.lrG * lr_factor, beta_1=0.5).get_updates(weights_src_gen, [], loss_src_gen)
-        self.net_src_gen_train = K.function([self.distorted_src, self.real_src], [loss_src_gen, loss_adv_src_gen], training_updates)
+        self.net_src_gen_train = K.function([self.distorted_src, self.real_src, self.mask_eyes_src],
+                                            [loss_src_gen, loss_adv_src_gen, loss_recon_src_gen, loss_edge_src_gen, loss_pl_src_gen],
+                                            training_updates)
 
         training_updates = Adam(lr=self.lrD * lr_factor, beta_1=0.5).get_updates(weights_dst_dis, [], loss_dst_dis)
         self.net_dst_dis_train = K.function([self.distorted_dst, self.real_dst], [loss_dst_dis], training_updates)
         training_updates = Adam(lr=self.lrG * lr_factor, beta_1=0.5).get_updates(weights_dst_gen, [], loss_dst_gen)
-        self.net_dst_gen_train = K.function([self.distorted_dst, self.real_dst], [loss_dst_gen, loss_adv_dst_gen], training_updates)
+        self.net_dst_gen_train = K.function([self.distorted_dst, self.real_dst, self.mask_eyes_dst],
+                                            [loss_dst_gen, loss_adv_dst_gen, loss_recon_dst_gen, loss_edge_dst_gen, loss_pl_dst_gen],
+                                            training_updates)
+
+    def build_pl_model(self, vggface_model, before_activ=False):
+        # Define Perceptual Loss Model
+        vggface_model.trainable = False
+        if before_activ == False:
+            out_size112 = vggface_model.layers[1].output
+            out_size55 = vggface_model.layers[36].output
+            out_size28 = vggface_model.layers[78].output
+            out_size7 = vggface_model.layers[-2].output
+        else:
+            out_size112 = vggface_model.layers[15].output  # misnamed: the output size is 55
+            out_size55 = vggface_model.layers[35].output
+            out_size28 = vggface_model.layers[77].output
+            out_size7 = vggface_model.layers[-3].output
+        self.vggface_feats = Model(vggface_model.input, [out_size112, out_size55, out_size28, out_size7])
+        self.vggface_feats.trainable = False
 
     def load_weights(self, path="data/models"):
         self.encoder.load_weights("{path}/encoder.h5".format(path=path))
@@ -339,10 +362,10 @@ class GanModel:
         self.dst_discriminator.save("{path}/netDB.h5".format(path=path))
         print("Model weights files have been saved to {path}.".format(path=path))
 
-    def train_generators(self, X, Y):
+    def train_generators(self, X, Y, maskX, maskY):
 
-        err_src_gen = self.net_src_gen_train([X, X])
-        err_dst_gen = self.net_dst_gen_train([Y, Y])
+        err_src_gen = self.net_src_gen_train([X, X, maskX])
+        err_dst_gen = self.net_dst_gen_train([Y, Y, maskY])
 
         return err_src_gen, err_dst_gen
 
