@@ -1,5 +1,6 @@
 from keras.layers import Lambda, concatenate
 from tensorflow.contrib.distributions import Beta
+import tensorflow as tf
 import keras.backend as K
 
 """ 
@@ -30,13 +31,8 @@ def calc_loss(pred, target, loss='l2'):
         raise ValueError(f'Recieve an unknown loss type: {loss}.')
 
 
-def adversarial_loss(netD, real, fake_abgr, distorted, gan_training="mixup_LSGAN"):
-    weights = {}
-    weights['w_D'] = 0.1  # Discriminator
-    weights['w_recon'] = 1.  # L1 reconstruction loss
-    weights['w_edge'] = 0.1  # edge loss
-    weights['w_eyes'] = 30.  # reconstruction and edge loss on eyes area
-    weights['w_pl'] = (0.01, 0.1, 0.3, 0.1)  # perceptual loss (0.003, 0.03, 0.3, 0.3)
+def adversarial_loss(netD, real, fake_abgr, distorted, weights, gan_training="mixup_LSGAN"):
+
     alpha = Lambda(lambda x: x[:, :, :, :1])(fake_abgr)
     fake_bgr = Lambda(lambda x: x[:, :, :, 1:])(fake_abgr)
     fake = alpha * fake_bgr + (1 - alpha) * distorted
@@ -71,3 +67,28 @@ def adversarial_loss(netD, real, fake_abgr, distorted, gan_training="mixup_LSGAN
     else:
         raise ValueError("Receive an unknown GAN training method: {gan_training}")
     return loss_D, loss_G
+
+
+def reconstruction_loss(real, fake_abgr, model_outputs, weights):
+    alpha = Lambda(lambda x: x[:, :, :, :1])(fake_abgr)
+    fake_bgr = Lambda(lambda x: x[:, :, :, 1:])(fake_abgr)
+
+    loss_G = 0
+    loss_G += weights['w_recon'] * calc_loss(fake_bgr, real, "l1")
+
+    for out in model_outputs[:-1]:
+        out_size = out.get_shape().as_list()
+        resized_real = tf.image.resize_images(real, out_size[1:3])
+        loss_G += weights['w_recon'] * calc_loss(out, resized_real, "l1")
+    return loss_G
+
+
+def edge_loss(real, fake_abgr, weights):
+    alpha = Lambda(lambda x: x[:, :, :, :1])(fake_abgr)
+    fake_bgr = Lambda(lambda x: x[:, :, :, 1:])(fake_abgr)
+
+    loss_G = 0
+    loss_G += weights['w_edge'] * calc_loss(first_order(fake_bgr, axis=1), first_order(real, axis=1), "l1")
+    loss_G += weights['w_edge'] * calc_loss(first_order(fake_bgr, axis=2), first_order(real, axis=2), "l1")
+
+    return loss_G

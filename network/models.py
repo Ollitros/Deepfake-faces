@@ -263,11 +263,27 @@ class GanModel:
 
     def build_train_functions(self):
 
+        weights = {}
+        weights['w_D'] = 0.1  # Discriminator
+        weights['w_recon'] = 1.  # L1 reconstruction loss
+        weights['w_edge'] = 0.1  # edge loss
+        weights['w_eyes'] = 30.  # reconstruction and edge loss on eyes area
+        weights['w_pl'] = (0.01, 0.1, 0.3, 0.1)  # perceptual loss (0.003, 0.03, 0.3, 0.3)
+
         # Adversarial loss
-        loss_src_dis, loss_adv_src_gen = adversarial_loss(self.src_discriminator, self.real_src, self.fake_src, self.distorted_src)
-        loss_dst_dis, loss_adv_dst_gen = adversarial_loss(self.dst_discriminator, self.real_dst, self.fake_dst, self.distorted_dst)
+        loss_src_dis, loss_adv_src_gen = adversarial_loss(self.src_discriminator, self.real_src, self.fake_src, self.distorted_src, weights=weights)
+        loss_dst_dis, loss_adv_dst_gen = adversarial_loss(self.dst_discriminator, self.real_dst, self.fake_dst, self.distorted_dst, weights=weights)
         loss_src_gen = loss_adv_src_gen
         loss_dst_gen = loss_adv_dst_gen
+
+        # Reconstruction loss
+        loss_recon_src_gen = reconstruction_loss(self.real_src, self.fake_src, self.src_gen.outputs,  weights=weights)
+        loss_recon_dst_gen = reconstruction_loss(self.real_dst, self.fake_dst, self.dst_gen.outputs,  weights=weights)
+
+        # Edge loss
+        loss_edge_GA = edge_loss(self.real_A, self.fake_A, self.mask_eyes_A, **loss_weights)
+        loss_edge_GB = edge_loss(self.real_B, self.fake_B, self.mask_eyes_B, **loss_weights)
+
 
         # Alpha mask loss
         loss_src_gen += 1e-2 * K.mean(K.abs(self.mask_src))

@@ -94,19 +94,19 @@ def train(X, Y, epochs, batch_size, input_shape, splitted):
 
             if i % 1 == 0:
                 # Makes predictions after each epoch and save into temp folder.
-                prediction = model.encoder.predict(X[0:2])
+                prediction = model.encoder.predict(X[0:5])
                 prediction = model.dst_decoder.predict(prediction)
-                prediction = np.float32(prediction[0] * 255)[:, :, 1:4]
-                cv.imwrite('image{epoch}.jpg'.format(epoch=i + 0), prediction)
+                prediction = np.float32(prediction[4] * 255)[:, :, 1:4]
+                cv.imwrite('data/models/temp/image{epoch}.jpg'.format(epoch=i + 0), prediction)
 
-            model.save_weights()
+                model.save_weights()
 
 
 def main():
     # Parameters
-    epochs = 2
-    batch_size = 1
-    input_shape = (128, 128, 3)
+    epochs = 5
+    batch_size = 5
+    input_shape = (64, 64, 3)
     splitted = None  # 'Splitted' parameter use when dataset is huge to load in memory and you need to split it
 
     if splitted is not None:

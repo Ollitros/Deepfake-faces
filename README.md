@@ -8,7 +8,7 @@ This is only **pet-project**.
 folder into **"data/training_data/src/src_video_faces/faces/face_images/"** ,  **"data/training_data/src/src_video_faces/faces/face_info/"** and
 **"data/training_data/src/src_video_faces/frames/"** directories. 
 This module makes the same operation for dst folder.
-4) Train autoencoder from **train_autoencoder.py** module. **Epochs** and **batch_size** you can change inside **main** function.
+4) Train GAN from **train_gan.py** module. **Epochs** and **batch_size** you can change inside **main** function.
 There are all model files in **'data/models/'** folder.
 5) Use **predict_faces.py** to generate faces from train model. Generated images you can find in **'data/predictions/'** directory.
 6) Use **face_swap.py** to take original frames, faces`s metadata and predicted images to swap and write in **'data/swapped_frames/'** folder.
