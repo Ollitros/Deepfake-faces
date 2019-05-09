@@ -3,6 +3,30 @@ import numpy as np
 import time
 from network.models import GanModel
 from keras_vggface.vggface import VGGFace
+from utils import  *
+
+
+def test(X, Y, maskX, maskY, input_shape):
+    """
+        This function does testing not by predicting directly like in train function, but
+        taking prepared tensors from trained model.
+        All test images will be saved in 'data/test/' folder.
+    """
+    model = GanModel(input_shape=input_shape, image_shape=(input_shape[0], input_shape[1], 6))
+    vggface = VGGFace(include_top=False, model='resnet50', input_shape=(224, 224, 3))
+    vggface.summary()
+    model.build_pl_model(vggface_model=vggface, before_activ=False)
+    model.build_train_functions()
+    model.load_weights()
+
+    src = X[0:2]
+    dst = Y[0:2]
+    eyesX = maskX[0:2]
+    eyesY = maskY[0:2]
+
+    showG_rec(src, dst, model.path_bgr_src, model.path_bgr_dst, 2)
+    showG_mask(src, dst, model.path_bgr_src, model.path_bgr_dst, 2)
+    showG_eyes(src, dst, eyesX, eyesY, 2)
 
 
 def train(X, Y, maskX, maskY, epochs, batch_size, input_shape, splitted):
@@ -102,17 +126,18 @@ def train(X, Y, maskX, maskY, epochs, batch_size, input_shape, splitted):
                 prediction = model.encoder.predict(X[0:2])
                 prediction = model.dst_decoder.predict(prediction)
                 prediction = np.float32(prediction[0] * 255)[:, :, 1:4]
-                cv.imwrite('data/models/temp/image{epoch}.jpg'.format(epoch=i + 0), prediction)
+                cv.imwrite('data/models/temp/image{epoch}.jpg'.format(epoch=i + 25), prediction)
 
                 model.save_weights()
 
 
 def main():
     # Parameters
-    epochs = 7
+    epochs = 5
     batch_size = 5
     input_shape = (64, 64, 3)
     splitted = None  # 'Splitted' parameter use when dataset is huge to load in memory and you need to split it
+    TRAIN = False
 
     if splitted is not None:
 
@@ -133,7 +158,10 @@ def main():
         maskX /= 255
         maskY /= 255
 
-        train(X, Y, maskX, maskY, epochs, batch_size, input_shape, splitted)
+        if TRAIN:
+            train(X, Y, maskX, maskY, epochs, batch_size, input_shape, splitted)
+        else:
+            test(X, Y, maskX, maskY, input_shape)
 
 
 if __name__ == "__main__":
