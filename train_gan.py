@@ -94,6 +94,7 @@ def train(X, Y, maskX, maskY, epochs, batch_size, input_shape, splitted):
             step = 0
             for iter in range(iters):
                 errDA, errDB = model.train_discriminators(X=X[step: (step + batch_size)], Y=Y[step:step + batch_size])
+                # model.train_dst_dis(Y=Y[step:step + batch_size])
                 step = step + batch_size
                 if iter % 100 == 0:
                     print("Discriminator interior step", iter)
@@ -105,6 +106,7 @@ def train(X, Y, maskX, maskY, epochs, batch_size, input_shape, splitted):
             for iter in range(iters):
                 errGA, errGB = model.train_generators(X=X[step:step + batch_size], Y=Y[step:step + batch_size],
                                                       maskX=maskX[step:step + batch_size], maskY=maskY[step:step + batch_size])
+                # model.train_src_gen(X=X[step:step + batch_size], maskX=maskX[step:step + batch_size])
                 step = step + batch_size
                 if iter % 100 == 0:
                     print("Generator interior step", iter)
@@ -126,28 +128,28 @@ def train(X, Y, maskX, maskY, epochs, batch_size, input_shape, splitted):
                 prediction = model.encoder.predict(X[0:2])
                 prediction = model.dst_decoder.predict(prediction)
                 prediction = np.float32(prediction[0] * 255)[:, :, 1:4]
-                cv.imwrite('data/models/temp/image{epoch}.jpg'.format(epoch=i + 25), prediction)
+                cv.imwrite('data/models/temp/image{epoch}.jpg'.format(epoch=i + 0), prediction)
 
                 model.save_weights()
 
 
 def main():
     # Parameters
-    epochs = 5
+    epochs = 10
     batch_size = 5
     input_shape = (64, 64, 3)
     splitted = None  # 'Splitted' parameter use when dataset is huge to load in memory and you need to split it
-    TRAIN = False
+    TRAIN = True
 
     if splitted is not None:
 
         train(X=None, Y=None, maskX=0, maskY=0, epochs=epochs, batch_size=batch_size, input_shape=input_shape, splitted=splitted)
 
     else:
-        X = np.load('data/training_data/trainX.npy')
-        Y = np.load('data/training_data/trainY.npy')
-        maskX = np.load('data/training_data/maskX.npy')
-        maskY = np.load('data/training_data/maskY.npy')
+        X = np.load('data/training_data/not_augmented_trainX.npy')
+        Y = np.load('data/training_data/not_augmented_trainY.npy')
+        maskX = np.load('data/training_data/not_augmented_maskX.npy')
+        maskY = np.load('data/training_data/not_augmented_maskY.npy')
 
         X = X.astype('float32')
         Y = Y.astype('float32')

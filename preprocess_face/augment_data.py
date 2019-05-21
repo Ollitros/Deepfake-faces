@@ -41,7 +41,7 @@ def make_augmentation():
         cv.imwrite(mask_src_augmented_path + 'mask_src{i}.jpg'.format(i=count), mask_src)
         cv.imwrite(mask_dst_augmented_path + 'mask_dst{i}.jpg'.format(i=count), mask_dst)
 
-        # Mirror vertically
+        # # Mirror vertically
         count = count + 1
         mv_src = cv.flip(src, 0)
         mv_dst = cv.flip(dst, 0)
