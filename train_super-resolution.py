@@ -1,5 +1,4 @@
 import cv2 as cv
-import numpy as np
 import time
 from super_resolution.augmentation import make_augmentation
 from super_resolution.model import Gan
@@ -20,11 +19,12 @@ def test(X, Y, input_shape):
     model.build_train_functions()
     model.load_weights()
 
-    src = X[0:2]
-    dst = Y[0:2]
-
-    showG_rec(src, dst, model.path_bgr_src, model.path_bgr_dst, 2)
-    showG_mask(src, dst, model.path_bgr_src, model.path_bgr_dst, 2)
+    prediction = model.generator.predict(X[0:2])
+    prediction = np.float32(prediction[0] * 255)[:, :, 1:4]
+    print(prediction.shape)
+    cv.imwrite('data/test.jpg', prediction)
+    cv.waitKey(0)
+    cv.destroyAllWindows()
 
 
 def train(X, Y, epochs, batch_size, input_shape):
@@ -83,7 +83,7 @@ def main():
     epochs = 10
     batch_size = 5
     input_shape = (64, 64, 3)
-    TRAIN = True
+    TRAIN = False
 
     X = np.load('data/training_data/X_sr.npy')
     Y = np.load('data/training_data/Y_sr.npy')
